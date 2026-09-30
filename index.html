@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arbitragem: Kalshi × Polymarket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f4;--ink:#14202b;--mute:#5d6b78;--line:#d3dae1;--panel:#fff;--pos:#0b7a5a;--posbg:#dff3ea;--warn:#7a4b0b;--warnbg:#fbf0dc}
+@media (prefers-color-scheme:dark){:root{--bg:#10171d;--ink:#e6ecf1;--mute:#93a1ad;--line:#27333d;--panel:#17212a;--pos:#4fd1a1;--posbg:#15362b;--warn:#f0c987;--warnbg:#3a2d12}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+main{max-width:1040px;margin:0 auto;padding:28px 18px 60px}
+h1{font-size:26px;font-weight:600;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 18px}
+.sub a{color:inherit}
+.warn{background:var(--warnbg);color:var(--warn);padding:12px 14px;border-radius:6px;margin-bottom:18px;max-width:78ch}
+.err{background:#fde3e0;color:#8a1f14;padding:10px 14px;border-radius:6px;margin-bottom:14px}
+.wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;min-width:760px}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:500;color:var(--mute);font-size:13px}
+tr:last-child td{border-bottom:0}
+.name{font-weight:500}
+.op{text-align:left;font-size:13px;color:var(--mute)}
+td.net{font-weight:600}
+tr.hit td.net{background:var(--posbg);color:var(--pos)}
+.foot{color:var(--mute);font-size:13px;margin-top:14px;max-width:78ch}
+button{font:inherit;background:var(--ink);color:var(--bg);border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+button:focus-visible{outline:2px solid var(--pos);outline-offset:2px}
+.bar{display:flex;gap:12px;align-items:center;margin-bottom:12px;color:var(--mute);font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<h1>Eleição presidencial do Brasil: Kalshi × Polymarket</h1>
+<p class="sub" id="links">Preços de compra (ask) das duas plataformas, comparados por candidato.</p>
+<div class="warn">Um spread positivo só é arbitragem de verdade se as regras de resolução forem idênticas nas duas plataformas (o que conta como "vencer", data e fonte oficial). Leia as regras dos dois mercados antes de operar.</div>
+<div id="errors"></div>
+<div class="bar"><button id="reload">Atualizar</button><span id="status">Carregando…</span></div>
+<div class="wrap"><table>
+<thead><tr><th>Candidato</th><th>Kalshi Sim</th><th>Kalshi Não</th><th>Poly Sim</th><th>Poly Não</th><th class="op">Melhor combinação</th><th>Bruto</th><th>Líquido</th></tr></thead>
+<tbody id="rows"></tbody></table></div>
+<p class="foot" id="foot"></p>
+</main>
+<script>
+const c = v => v == null ? '–' : (v * 100).toFixed(1) + '¢';
+const s = v => (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '¢';
+async function load() {
+  const st = document.getElementById('status'); st.textContent = 'Atualizando…';
+  try {
+    const d = await (await fetch('/api/markets')).json();
+    document.getElementById('links').innerHTML = `Preços de compra (ask). Mercados: <a href="${d.links.kalshi}" target="_blank" rel="noopener">Kalshi</a> e <a href="${d.links.poly}" target="_blank" rel="noopener">Polymarket</a>.`;
+    document.getElementById('errors').innerHTML = d.errors.map(e => `<div class="err">${e}</div>`).join('');
+    document.getElementById('rows').innerHTML = d.rows.map(r => {
+      const b = r.best, hit = b && b.net > 0;
+      return `<tr class="${hit ? 'hit' : ''}"><td class="name">${r.name}</td>
+        <td>${c(r.kalshi.yes)}</td><td>${c(r.kalshi.no)}</td><td>${c(r.poly.yes)}</td><td>${c(r.poly.no)}</td>
+        <td class="op">${b ? `Sim na ${b.buyYesOn} + Não na ${b.buyNoOn}` : 'Sem cotação dos dois lados'}</td>
+        <td>${b ? s(b.gross) : '–'}</td><td class="net">${b ? s(b.net) : '–'}</td></tr>`;
+    }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--mute)">Nenhum par encontrado. Veja o erro acima.</td></tr>';
+    document.getElementById('foot').textContent = `Líquido = 1 − custo − taxas estimadas (${d.feeNote}). Não considera profundidade do livro de ordens: confirme se há volume no preço mostrado.` + (d.unmatchedPoly.length ? ` Sem par na Kalshi: ${d.unmatchedPoly.join(', ')}.` : '');
+    st.textContent = 'Atualizado às ' + new Date(d.fetchedAt).toLocaleTimeString('pt-BR');
+  } catch (e) { st.textContent = 'Falha ao carregar: ' + e.message; }
+}
+document.getElementById('reload').onclick = load;
+load(); setInterval(load, 30000);
+</script>
+</body>
+</html>
