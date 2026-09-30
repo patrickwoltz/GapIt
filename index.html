@@ -41,12 +41,13 @@ button:focus-visible{outline:2px solid var(--pos);outline-offset:2px}
 <div id="errors"></div>
 <div class="bar"><button id="reload">Atualizar</button><span id="status">Carregando…</span></div>
 <div class="wrap"><table>
-<thead><tr><th>Candidato</th><th>Kalshi Sim</th><th>Kalshi Não</th><th>Poly Sim</th><th>Poly Não</th><th class="op">Melhor combinação</th><th>Bruto</th><th>Líquido</th></tr></thead>
+<thead><tr><th>Candidato</th><th>Kalshi Sim</th><th>Kalshi Não</th><th>Poly Sim</th><th>Poly Não</th><th class="op">Melhor combinação</th><th>Bruto</th><th>Líquido</th><th>Volume lucrativo</th></tr></thead>
 <tbody id="rows"></tbody></table></div>
 <p class="foot" id="foot"></p>
 </main>
 <script>
 const c = v => v == null ? '–' : (v * 100).toFixed(1) + '¢';
+const depth = b => !b ? '–' : b.depth ? (b.depth.contracts > 0 ? `${Math.floor(b.depth.contracts)} contr. → +$${b.depth.profit.toFixed(2)}` : 'Nenhum') : b.depthError ? 'Livro indisponível' : '–';
 const s = v => (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '¢';
 async function load() {
   const st = document.getElementById('status'); st.textContent = 'Atualizando…';
@@ -59,14 +60,14 @@ async function load() {
       return `<tr class="${hit ? 'hit' : ''}"><td class="name">${r.name}</td>
         <td>${c(r.kalshi.yes)}</td><td>${c(r.kalshi.no)}</td><td>${c(r.poly.yes)}</td><td>${c(r.poly.no)}</td>
         <td class="op">${b ? `Sim na ${b.buyYesOn} + Não na ${b.buyNoOn}` : 'Sem cotação dos dois lados'}</td>
-        <td>${b ? s(b.gross) : '–'}</td><td class="net">${b ? s(b.net) : '–'}</td></tr>`;
-    }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--mute)">Nenhum par encontrado. Veja o erro acima.</td></tr>';
-    document.getElementById('foot').textContent = `Líquido = 1 − custo − taxas estimadas (${d.feeNote}). Não considera profundidade do livro de ordens: confirme se há volume no preço mostrado.` + (d.unmatchedPoly.length ? ` Sem par na Kalshi: ${d.unmatchedPoly.join(', ')}.` : '');
+        <td>${b ? s(b.gross) : '–'}</td><td class="net">${b ? s(b.net) : '–'}</td><td>${depth(b)}</td></tr>`;
+    }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--mute)">Nenhum par encontrado. Veja o erro acima.</td></tr>';
+    document.getElementById('foot').textContent = `Líquido = 1 − custo − taxas estimadas (${d.feeNote}). Volume lucrativo = contratos (US$ 1 cada) que ainda dão lucro líquido ao consumir o livro de ordens das duas plataformas, calculado só para candidatos com spread próximo de positivo.` + (d.unmatchedPoly.length ? ` Sem par na Kalshi: ${d.unmatchedPoly.join(', ')}.` : '');
     st.textContent = 'Atualizado às ' + new Date(d.fetchedAt).toLocaleTimeString('pt-BR');
   } catch (e) { st.textContent = 'Falha ao carregar: ' + e.message; }
 }
 document.getElementById('reload').onclick = load;
-load(); setInterval(load, 30000);
+load(); setInterval(load, 60000);
 </script>
 </body>
 </html>
