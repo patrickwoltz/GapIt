@@ -38,6 +38,7 @@ async function loadKalshi() {
     const noAsk = price(m, 'no_ask');
     return {
       name: m.yes_sub_title || m.subtitle || m.title,
+      ticker: m.ticker,
       yes: price(m, 'yes_ask'),
       no: noAsk !== null ? noAsk : yesBid !== null ? 1 - yesBid : null,
       volume: num(m.volume_fp ?? m.volume),
@@ -51,8 +52,12 @@ async function loadPoly() {
   if (!ev) throw new Error('Evento não encontrado na Polymarket');
   return (ev.markets || []).filter((m) => !m.closed).map((m) => {
     const bid = num(m.bestBid), ask = num(m.bestAsk);
+    const parse = (v) => { try { return typeof v === 'string' ? JSON.parse(v) : v; } catch { return null; } };
+    const ids = parse(m.clobTokenIds), outs = parse(m.outcomes);
+    const yi = Array.isArray(outs) ? Math.max(0, outs.indexOf('Yes')) : 0;
     return {
       name: m.groupItemTitle || m.question,
+      token: Array.isArray(ids) ? ids[yi] : null,
       yes: ask,
       no: bid !== null ? 1 - bid : null,
       volume: num(m.volume),
@@ -67,6 +72,48 @@ function evaluate(k, p) {
   ].filter((o) => valid(o.yes) && valid(o.no))
    .map((o) => ({ ...o, cost: o.yes + o.no, gross: 1 - (o.yes + o.no), net: 1 - (o.yes + o.no) - o.fees }));
   return options.sort((a, b) => b.net - a.net)[0] || null;
+}
+
+
+// ---- Livros de ordens: devolvem níveis [preço, quantidade] de COMPRA, do mais barato ao mais caro ----
+const levels = (arr) => (arr || []).map((l) => {
+  const raw = Array.isArray(l) ? l : [l.price, l.size];
+  let p = num(raw[0]); const q = num(raw[1]);
+  if (p !== null && p >= 1) p = p / 100; // Kalshi antiga usa centavos
+  return [p, q];
+}).filter(([p, q]) => valid(p) && q > 0);
+const asc = (a) => a.sort((x, y) => x[0] - y[0]);
+const flip = (a) => a.map(([p, q]) => [1 - p, q]);
+
+async function kalshiBook(ticker) {
+  const d = await getJson(`https://api.elections.kalshi.com/trade-api/v2/markets/${ticker}/orderbook`);
+  const ob = d.orderbook_fp || d.orderbook || {};
+  const yesBids = levels(ob.yes_dollars || ob.yes), noBids = levels(ob.no_dollars || ob.no);
+  // quem oferece Não a X aceita vender Sim a 1-X, e vice-versa
+  return { buyYes: asc(flip(noBids)), buyNo: asc(flip(yesBids)) };
+}
+
+async function polyBook(token) {
+  if (!token) throw new Error('sem token do mercado');
+  const d = await getJson(`https://clob.polymarket.com/book?token_id=${token}`);
+  return { buyYes: asc(levels(d.asks)), buyNo: asc(flip(levels(d.bids))) };
+}
+
+// Compra Sim e Não em paralelo, nível a nível, enquanto ainda sobrar lucro depois das taxas.
+function walk(yes, no, feeY, feeN) {
+  let i = 0, j = 0, ry = yes[0] ? yes[0][1] : 0, rn = no[0] ? no[0][1] : 0;
+  let contracts = 0, profit = 0, cost = 0;
+  while (i < yes.length && j < no.length) {
+    const py = yes[i][0], pn = no[j][0];
+    const net = 1 - py - pn - feeY(py) - feeN(pn);
+    if (net <= 1e-6) break;
+    const q = Math.min(ry, rn);
+    contracts += q; profit += q * net; cost += q * (py + pn + feeY(py) + feeN(pn));
+    ry -= q; rn -= q;
+    if (ry <= 1e-9) { i++; ry = yes[i] ? yes[i][1] : 0; }
+    if (rn <= 1e-9) { j++; rn = no[j] ? no[j][1] : 0; }
+  }
+  return { contracts, profit, cost };
 }
 
 module.exports = async function handler(req, res) {
@@ -87,6 +134,22 @@ module.exports = async function handler(req, res) {
     }
     rows.sort((a, b) => (b.best ? b.best.net : -9) - (a.best ? a.best.net : -9));
   }
+
+  // Profundidade: só para os candidatos próximos de ter spread (limita chamadas)
+  const fee = (on) => (on === 'Kalshi' ? kalshiFee : polyFee);
+  await Promise.all(rows.filter((r) => r.best && r.best.gross > -0.03).slice(0, 4).map(async (r) => {
+    const [kb, pb] = await Promise.allSettled([kalshiBook(r.kalshi.ticker), polyBook(r.poly.token)]);
+    if (kb.status !== 'fulfilled' || pb.status !== 'fulfilled') {
+      r.best.depthError = true;
+      if (kb.status === 'rejected') errors.push(`Livro Kalshi (${r.name}): ${kb.reason.message}`);
+      if (pb.status === 'rejected') errors.push(`Livro Polymarket (${r.name}): ${pb.reason.message}`);
+      return;
+    }
+    const b = r.best;
+    const yes = b.buyYesOn === 'Kalshi' ? kb.value.buyYes : pb.value.buyYes;
+    const no = b.buyNoOn === 'Kalshi' ? kb.value.buyNo : pb.value.buyNo;
+    b.depth = walk(yes, no, fee(b.buyYesOn), fee(b.buyNoOn));
+  }));
 
   res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
   res.status(200).json({
