@@ -18,7 +18,7 @@ h1{font-size:26px;font-weight:600;margin:0 0 4px}
 .warn{background:var(--warnbg);color:var(--warn);padding:12px 14px;border-radius:6px;margin-bottom:18px;max-width:78ch}
 .err{background:#fde3e0;color:#8a1f14;padding:10px 14px;border-radius:6px;margin-bottom:14px}
 .wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px}
-table{border-collapse:collapse;width:100%;min-width:760px}
+table{border-collapse:collapse;width:100%;min-width:1000px}
 th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
 th{font-weight:500;color:var(--mute);font-size:13px}
@@ -28,6 +28,7 @@ tr:last-child td{border-bottom:0}
 td.net{font-weight:600}
 tr.hit td.net{background:var(--posbg);color:var(--pos)}
 .foot{color:var(--mute);font-size:13px;margin-top:14px;max-width:78ch}
+input{font:inherit;width:110px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}
 button{font:inherit;background:var(--ink);color:var(--bg);border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
 button:focus-visible{outline:2px solid var(--pos);outline-offset:2px}
 .bar{display:flex;gap:12px;align-items:center;margin-bottom:12px;color:var(--mute);font-size:13px}
@@ -39,20 +40,32 @@ button:focus-visible{outline:2px solid var(--pos);outline-offset:2px}
 <p class="sub" id="links">Preços de compra (ask) das duas plataformas, comparados por candidato.</p>
 <div class="warn">Um spread positivo só é arbitragem de verdade se as regras de resolução forem idênticas nas duas plataformas (o que conta como "vencer", data e fonte oficial). Leia as regras dos dois mercados antes de operar.</div>
 <div id="errors"></div>
-<div class="bar"><button id="reload">Atualizar</button><span id="status">Carregando…</span></div>
+<div class="bar"><label>Aporte (US$) <input id="budget" type="number" min="0" step="10" placeholder="ex.: 500"></label><button id="reload">Atualizar</button><span id="status">Carregando…</span></div>
 <div class="wrap"><table>
-<thead><tr><th>Candidato</th><th>Kalshi Sim</th><th>Kalshi Não</th><th>Poly Sim</th><th>Poly Não</th><th class="op">Melhor combinação</th><th>Bruto</th><th>Líquido</th><th>Volume lucrativo</th></tr></thead>
+<thead><tr><th>Candidato</th><th>Kalshi Sim</th><th>Kalshi Não</th><th>Poly Sim</th><th>Poly Não</th><th class="op">Melhor combinação</th><th>Bruto</th><th>Líquido</th><th>Volume lucrativo</th><th>Com seu aporte</th></tr></thead>
 <tbody id="rows"></tbody></table></div>
 <p class="foot" id="foot"></p>
 </main>
 <script>
 const c = v => v == null ? '–' : (v * 100).toFixed(1) + '¢';
-const depth = b => !b ? '–' : b.depth ? (b.depth.contracts > 0 ? `${Math.floor(b.depth.contracts)} contr. → +$${b.depth.profit.toFixed(2)}` : 'Nenhum') : b.depthError ? 'Livro indisponível' : '–';
+const depth = b => !b ? '–' : b.depth ? (b.depth.contracts > 0 ? `${Math.floor(b.depth.contracts)} contr. → +$${b.depth.profit.toFixed(2)}` : `Nenhum (topo ${c(b.depth.topYes)} + ${c(b.depth.topNo)})`) : b.depthError ? 'Livro indisponível' : '–';
+const fmt = v => '$' + Math.abs(v).toFixed(2);
+const bud = (b, has) => {
+  if (!has) return 'Informe um aporte';
+  if (!b) return '–';
+  if (b.depthError) return 'Livro indisponível';
+  const r = b.budgetRun; if (!r) return '–';
+  if (r.contracts < 1) return 'Sem liquidez';
+  const pct = (r.profit / r.cost * 100).toFixed(1);
+  return `${Math.floor(r.contracts)} contr. · custo ${fmt(r.cost)} · ${r.profit >= 0 ? '+' : '−'}${fmt(r.profit)} (${pct}%)` + (r.unspent > 0.5 ? ` · sobram ${fmt(r.unspent)}` : '');
+};
 const s = v => (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '¢';
 async function load() {
   const st = document.getElementById('status'); st.textContent = 'Atualizando…';
   try {
-    const d = await (await fetch('/api/markets')).json();
+    const bv = parseFloat(document.getElementById('budget').value) || 0;
+    try { localStorage.setItem('aporte', bv || ''); } catch (e) {}
+    const d = await (await fetch('/api/markets?budget=' + bv)).json();
     document.getElementById('links').innerHTML = `Preços de compra (ask). Mercados: <a href="${d.links.kalshi}" target="_blank" rel="noopener">Kalshi</a> e <a href="${d.links.poly}" target="_blank" rel="noopener">Polymarket</a>.`;
     document.getElementById('errors').innerHTML = d.errors.map(e => `<div class="err">${e}</div>`).join('');
     document.getElementById('rows').innerHTML = d.rows.map(r => {
@@ -60,12 +73,14 @@ async function load() {
       return `<tr class="${hit ? 'hit' : ''}"><td class="name">${r.name}</td>
         <td>${c(r.kalshi.yes)}</td><td>${c(r.kalshi.no)}</td><td>${c(r.poly.yes)}</td><td>${c(r.poly.no)}</td>
         <td class="op">${b ? `Sim na ${b.buyYesOn} + Não na ${b.buyNoOn}` : 'Sem cotação dos dois lados'}</td>
-        <td>${b ? s(b.gross) : '–'}</td><td class="net">${b ? s(b.net) : '–'}</td><td>${depth(b)}</td></tr>`;
-    }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--mute)">Nenhum par encontrado. Veja o erro acima.</td></tr>';
-    document.getElementById('foot').textContent = `Líquido = 1 − custo − taxas estimadas (${d.feeNote}). Volume lucrativo = contratos (US$ 1 cada) que ainda dão lucro líquido ao consumir o livro de ordens das duas plataformas, calculado só para candidatos com spread próximo de positivo.` + (d.unmatchedPoly.length ? ` Sem par na Kalshi: ${d.unmatchedPoly.join(', ')}.` : '');
+        <td>${b ? s(b.gross) : '–'}</td><td class="net">${b ? s(b.net) : '–'}</td><td>${depth(b)}</td><td>${bud(b, d.budget > 0)}</td></tr>`;
+    }).join('') || '<tr><td colspan="10" style="text-align:center;color:var(--mute)">Nenhum par encontrado. Veja o erro acima.</td></tr>';
+    document.getElementById('foot').textContent = `Líquido = 1 − custo − taxas estimadas (${d.feeNote}). Volume lucrativo = contratos (US$ 1 cada) que ainda dão lucro líquido ao consumir o livro de ordens das duas plataformas, calculado só para candidatos com spread próximo de positivo. "Com seu aporte" mostra o resultado de gastar o valor informado, comprando nos dois livros do mais barato ao mais caro; o resultado é garantido só se os dois mercados pagarem igual, e o prejuízo aparece como negativo.` + (d.unmatchedPoly.length ? ` Sem par na Kalshi: ${d.unmatchedPoly.join(', ')}.` : '');
     st.textContent = 'Atualizado às ' + new Date(d.fetchedAt).toLocaleTimeString('pt-BR');
   } catch (e) { st.textContent = 'Falha ao carregar: ' + e.message; }
 }
+try { document.getElementById('budget').value = localStorage.getItem('aporte') || ''; } catch (e) {}
+document.getElementById('budget').addEventListener('change', load);
 document.getElementById('reload').onclick = load;
 load(); setInterval(load, 60000);
 </script>
