@@ -43,9 +43,7 @@ th{color:var(--mut);font-weight:500}
 <h2>Polymarket via API (ao vivo)</h2>
 <button id="bl" type="button">Carregar eventos UFC</button>
 <div style="margin-top:10px"><label>Luta</label><select id="se"></select></div>
-<details style="margin-top:10px"><summary class="note" style="cursor:pointer">⚙ Configurações</summary>
-  <div style="margin-top:8px"><label>Chave The Odds API</label><input id="ok" type="password" placeholder="Insira sua chave API do The Odds API"></div>
-</details>
+<details style="margin-top:10px"><summary class="note" style="cursor:pointer">⚙ Configurações</summary><div style="margin-top:8px"><label>Chave The Odds API</label><input id="ok" type="password" placeholder="Insira sua API Key da The Odds API"></div></details>
 <p class="note" id="st" style="margin:8px 0 0">Preenche nomes e preços (melhor ask, o que um taker paga) automaticamente.</p>
 </div>
 
@@ -58,7 +56,7 @@ th{color:var(--mut);font-weight:500}
 </div>
 
 <div class="card">
-<h2>1xbet (odds decimais 1x2)</h2>
+<h2>1xbet (odds decimais 1x2 - via The Odds API)</h2>
 <div class="grid3">
 <div><label id="lxa">Odd A (1)</label><input id="xa" type="number" step="0.01" value="1.55"></div>
 <div><label>Odd Empate (X)</label><input id="xx" type="number" step="0.01" value="25"></div>
@@ -124,11 +122,11 @@ function calc(){
 }
 document.querySelectorAll('input,select').forEach(i=>i.addEventListener('input',calc));
 
+/* API POLYMARKET (SEM ALTERAÇÕES) */
 const G='https://gamma-api.polymarket.com',C='https://clob.polymarket.com';
 let EVS=[],FL=[];const st=t=>$('st').textContent=t;
 const arr=v=>{try{return typeof v==='string'?JSON.parse(v):(v||[])}catch{return[]}};
 function opt(sel,items){sel.innerHTML='';items.forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;sel.appendChild(o)})}
-
 async function loadEvents(){
   st('Carregando eventos…');
   try{
@@ -143,82 +141,78 @@ async function loadEvents(){
     if(!FL.length){st('Nenhuma luta com 2 lutadores encontrada.');return}
     opt($('se'),FL.map((x,i)=>[i,x.label]));
     mkChange();
-  }catch(e){st('Erro ao acessar a API ('+e.message+'). Abra este arquivo localmente no navegador e verifique CORS/conexão.')}
+  }catch(e){st('Erro ao acessar a API da Polymarket ('+e.message+').')}
 }
-
 async function ask(tok,fallback){
   try{const r=await fetch(C+'/book?token_id='+tok);const b=await r.json();
     const a=(b.asks||[]).map(x=>+x.price).filter(x=>x>0);if(a.length)return [Math.min(...a),true]}catch{}
   return [fallback,false];
 }
 
-/* INTEGRAÇÃO THE ODDS API (1XBET) */
-const TOA_URL='https://api.the-odds-api.com/v4/sports/mma_mixed_martial_arts/odds';
-let TOA_CACHE=null;
-
+/* API THE ODDS API (1XBET AUTOMÁTICA) */
+const ODDS_API_URL='https://api.the-odds-api.com/v4/sports/mma_ufc/odds';
+let ODDS_CACHE=null;
 const nm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z ]/g,' ').split(/\s+/).filter(Boolean);
-function same(a,b){
-  const x=nm(a),y=nm(b);if(!x.length||!y.length)return false;
+function same(a,b){const x=nm(a),y=nm(b);if(!x.length||!y.length)return false;
   const ov=x.filter(t=>y.includes(t)).length;
-  return ov>=2||(x[x.length-1]===y[y.length-1]&&x[0][0]===y[0][0]);
-}
+  return ov>=2||(x[x.length-1]===y[y.length-1]&&x[0][0]===y[0][0])}
 function lo(a,b){const y=nm(b);return nm(a).some(t=>t.length>=4&&y.includes(t))}
 
 async function xbet(a,b){
   const key=$('ok').value.trim();
-  if(!key)return{msg:'Informe a chave da The Odds API em Configurações.'};
+  if(!key) return {msg:'Informe a chave da The Odds API em Configurações.'};
   
-  if(!TOA_CACHE||Date.now()-TOA_CACHE.t>300000){
-    st('Buscando lutas na The Odds API…');
-    try{
-      const res=await fetch(`${TOA_URL}?apiKey=${key}&regions=eu&markets=h2h&oddsFormat=decimal`);
-      if(res.status===401)throw new Error('chave The Odds API inválida');
-      if(res.status===429)throw new Error('limite da The Odds API atingido');
-      if(!res.ok)throw new Error('HTTP '+res.status);
-      const data=await res.json();
-      TOA_CACHE={t:Date.now(),data};
-    }catch(e){
-      return{msg:'Erro na The Odds API: '+e.message};
+  try {
+    if(!ODDS_CACHE || Date.now() - ODDS_CACHE.t > 300000){
+      st('Buscando lutas UFC na The Odds API…');
+      const url = `${ODDS_API_URL}/?apiKey=${key}&regions=eu,us,uk&bookmakers=onexbet&markets=h2h`;
+      const r = await fetch(url);
+      if(r.status===401||r.status===403) throw new Error('Chave da The Odds API inválida.');
+      if(!r.ok) throw new Error('The Odds API HTTP ' + r.status);
+      const data = await r.json();
+      ODDS_CACHE = { t: Date.now(), events: data };
     }
+    
+    const cand = ODDS_CACHE.events;
+    if(!cand || !cand.length) return {msg:'Nenhum evento encontrado na The Odds API.'};
+
+    const sw=(f,fn)=>fn(f.home_team,b)&&fn(f.away_team,a);
+    const dr=(f,fn)=>fn(f.home_team,a)&&fn(f.away_team,b);
+    let hit = cand.find(f=>dr(f,same)||sw(f,same))||cand.find(f=>dr(f,lo)||sw(f,lo));
+
+    if(!hit) return {msg:'Luta não encontrada na 1xBet via The Odds API. Digite manualmente.'};
+
+    const xbetBookmaker = (hit.bookmakers || []).find(b => b.key === 'onexbet' || b.key === '1xbet');
+    if(!xbetBookmaker || !xbetBookmaker.markets || !xbetBookmaker.markets.length) {
+      return {msg:'1xBet sem odds disponíveis para esta luta na The Odds API.'};
+    }
+
+    const h2hMarket = xbetBookmaker.markets.find(m => m.key === 'h2h');
+    if(!h2hMarket || !h2hMarket.outcomes) return {msg:'Mercado de vitória não encontrado na 1xBet.'};
+
+    const outcomes = h2hMarket.outcomes;
+    const homeOutcome = outcomes.find(o => same(o.name, hit.home_team) || lo(o.name, hit.home_team));
+    const awayOutcome = outcomes.find(o => same(o.name, hit.away_team) || lo(o.name, hit.away_team));
+    const drawOutcome = outcomes.find(o => /draw|empate/i.test(o.name));
+
+    const p1 = homeOutcome ? homeOutcome.price : null;
+    const p2 = awayOutcome ? awayOutcome.price : null;
+    const px = drawOutcome ? drawOutcome.price : 25.0; // Valor padrão de empate caso a casa ofereça 2-way
+
+    if(!p1 || !p2) return {msg:'Odds da 1xBet incompletas. Digite manualmente.'};
+
+    const isSwapped = sw(hit, same) || (!dr(hit, same) && sw(hit, lo));
+    return isSwapped ? {xa:p2, xx:px, xb:p1} : {xa:p1, xx:px, xb:p2};
+  } catch(e) {
+    return {msg: 'Erro The Odds API: ' + e.message};
   }
-
-  const events=TOA_CACHE.data||[];
-  const cand=events.filter(e=>e.home_team&&e.away_team);
-  
-  const dr=(f,fn)=>fn(f.home_team,a)&&fn(f.away_team,b);
-  const sw=(f,fn)=>fn(f.home_team,b)&&fn(f.away_team,a);
-  
-  let hit=cand.find(f=>dr(f,same)||sw(f,same))||cand.find(f=>dr(f,lo)||sw(f,lo));
-  if(!hit)return{msg:'Luta não encontrada na 1xbet/The Odds API. Digite as odds manualmente.'};
-
-  st('Buscando odds da 1xbet…');
-  const bookmaker=(hit.bookmakers||[]).find(b=>b.key==='onexbet'||b.key==='1xbet');
-  if(!bookmaker)return{msg:'Odds da 1xbet não disponíveis para esta luta. Digite manualmente.'};
-
-  const market=(bookmaker.markets||[]).find(m=>m.key==='h2h');
-  if(!market||!market.outcomes||market.outcomes.length<2)return{msg:'Mercado H2H indisponível na 1xbet.'};
-
-  const isSwapped=sw(hit,same)||( !dr(hit,same) && sw(hit,lo) );
-  
-  let pA=null,pB=null;
-  const o1=market.outcomes.find(o=>same(o.name,hit.home_team)||lo(o.name,hit.home_team));
-  const o2=market.outcomes.find(o=>same(o.name,hit.away_team)||lo(o.name,hit.away_team));
-
-  if(o1&&o2){
-    pA=isSwapped?o2.price:o1.price;
-    pB=isSwapped?o1.price:o2.price;
-  }
-
-  if(!pA||!pB)return{msg:'Odds 1x2 da 1xbet indisponíveis agora.'};
-
-  return {xa:pA,xx:25,xb:pB};
 }
 
 async function mkChange(){
   const f=FL[+$('se').value];if(!f)return;const m=f.m;
   const o=arr(m.outcomes),t=arr(m.clobTokenIds),p=arr(m.outcomePrices).map(Number);
   if(o.length<2||t.length<2){st('Mercado sem 2 resultados.');return}
-  $('na').value=o[0];$('nb').value=o[1];$('xa').value='';$('xx').value='25';$('xb').value='';
+  $('na').value=o[0];$('nb').value=o[1];$('xa').value='';$('xx').value='';$('xb').value='';
   st('Buscando livro de ordens…');
   const [a,b]=await Promise.all([ask(t[0],p[0]),ask(t[1],p[1])]);
   $('pa').value=+(a[0]*100).toFixed(1);$('pb').value=+(b[0]*100).toFixed(1);
@@ -226,11 +220,9 @@ async function mkChange(){
   try{
     const r=await xbet(o[0],o[1]);
     if(r.xa){
-      $('xa').value=r.xa;
-      $('xx').value=r.xx||25;
-      $('xb').value=r.xb;
-      x=' Odds da 1xbet preenchidas (The Odds API).';
-    }else{
+      $('xa').value=r.xa; $('xx').value=r.xx; $('xb').value=r.xb;
+      x=' Odds 1x2 da 1xbet preenchidas (The Odds API).';
+    } else {
       x=' '+r.msg;
     }
   }catch(e){
