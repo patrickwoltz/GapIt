@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Arbitragem UFC: Polymarket × 1xbet (The Odds API)</title>
+<title>Arbitragem UFC: Polymarket × 1xbet (Automático)</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#f6f5f2;--card:#fff;--tx:#1a1a1a;--mut:#6b6b6b;--bd:#ddd9d0;--ok:#157a3b;--okbg:#e3f4e8;--no:#b3261e;--nobg:#fbe9e7;--ac:#c8102e}
@@ -37,21 +37,21 @@ th{color:var(--mut);font-weight:500}
 <body>
 <main>
 <h1>Arbitragem UFC · Polymarket × 1xbet (The Odds API)</h1>
-<p class="s">Mercado de 2 resultados (Lutador A vs B). Selecione a luta e as odds de ambas as plataformas serão preenchidas automaticamente.</p>
+<p class="s">Mercado de 2 resultados (Lutador A vs B). Selecione a luta e as odds serão atualizadas automaticamente.</p>
 
 <input type="hidden" id="na" value="Lutador A"><input type="hidden" id="nb" value="Lutador B">
 
 <div class="card">
-<h2>Polymarket + 1xbet (Via The Odds API)</h2>
-<button id="bl" type="button">Carregar eventos UFC</button>
-<div style="margin-top:10px"><label>Luta</label><select id="se"></select></div>
+<h2>Polymarket + 1xbet (Atualização Automática)</h2>
+<button id="bl" type="button">Recarregar eventos UFC</button>
+<div style="margin-top:10px"><label>Selecione a Luta</label><select id="se"></select></div>
 <details style="margin-top:10px"><summary class="note" style="cursor:pointer">⚙ Configurações The Odds API</summary>
 <div style="margin-top:8px">
 <label>Chave de API (The Odds API)</label>
 <input id="ok" type="password" value="" placeholder="Cole sua API Key aqui">
 </div>
 </details>
-<p class="note" id="st" style="margin:8px 0 0">Aguardando carregamento de lutas...</p>
+<p class="note" id="st" style="margin:8px 0 0">Aguardando carregamento...</p>
 </div>
 
 <div class="card">
@@ -83,8 +83,8 @@ th{color:var(--mut);font-weight:500}
 <div id="th"></div>
 <div id="out"></div>
 
-<p class="note">Taxas pré-preenchidas: Polymarket cobra taxa só de quem executa a ordem (taker) em esportes: fee = shares × 0,05 × preço × (1 − preço). A 1xbet não cobra taxa sobre apostas. Confirme no site de cada um antes de apostar.</p>
-<p class="note">Atenção: confira liquidez/slippage da Polymarket e regras de empate/no contest em ambas as casas.</p>
+<p class="note">Taxas pré-preenchidas: Polymarket cobra taxa de taker em esportes. A 1xbet não cobra taxa extra.</p>
+<p class="note">Atenção: verifique a liquidez da Polymarket e regras de desempate/anulação em ambas as casas.</p>
 </main>
 
 <script>
@@ -110,7 +110,7 @@ function calc(){
     return `<tr><th>${opp} na 1xbet</th><td>&gt; <b>${f(mp)}</b></td><td>${mf?'&gt; <b>'+f(mf)+'</b>':'—'}</td><td class="note">c/ ${who} na Poly</td></tr>`};
   $('th').innerHTML=`<div class="card"><h2>Odd mínima na 1xbet (1x2) para dar lucro</h2><table>
   <tr><th></th><th>Sem cobrir empate</th><th>Cobrindo empate</th><th></th></tr>${trow(A,cA,B)}${trow(B,cB,A)}</table>
-  <p class="note" style="margin:8px 0 0">"Cobrindo empate" usa a odd do Empate (X) digitada/buscada. Já inclui a taxa taker da Polymarket.</p></div>`;
+  <p class="note" style="margin:8px 0 0">"Cobrindo empate" usa a odd do Empate (X). Inclui a taxa da Polymarket.</p></div>`;
   if(!(xa>1&&xx>1&&xb>1&&T>0)){$('out').innerHTML='';return}
   const c1={...plan(cA,xb,xx,T),poly:A,opp:B,oO:xb};
   const c2={...plan(cB,xa,xx,T),poly:B,opp:A,oO:xa};
@@ -125,10 +125,8 @@ function calc(){
   <tr><th>1xbet</th><td>Empate @ ${f(xx)}</td><td>${f(c.xXf)}</td></tr>
   <tr><th>Cobrindo empate</th><td colspan="2"><b ${cl(c.pf)}>${f(c.pf)} (${(c.pf/T*100).toFixed(2)}%) em qualquer resultado</b></td></tr>
   <tr><th>Sem apostar no empate</th><td colspan="2">Se alguém vencer: <b ${cl(c.pp)}>${f(c.pp)}</b> · se empatar: <b ${cl(c.pd)}>${f(c.pd)}</b></td></tr></table></div>`;
-  $('out').innerHTML=`<div class="v ${cls}">${v}<small>${sub}</small></div>`+card(c1,c1===bf)+card(c2,c2===bf)+
-  `<p class="note">Regra da Polymarket em lutas do UFC: empate/no contest paga US$0,50 por share. Na 1xbet, o empate é um resultado próprio (X).</p>`;
+  $('out').innerHTML=`<div class="v ${cls}">${v}<small>${sub}</small></div>`+card(c1,c1===bf)+card(c2,c2===bf);
 }
-document.querySelectorAll('input,select').forEach(i=>i.addEventListener('input',calc));
 
 const G='https://gamma-api.polymarket.com',C='https://clob.polymarket.com';
 let EVS=[],FL=[];const st=t=>$('st').innerHTML=t;
@@ -136,7 +134,7 @@ const arr=v=>{try{return typeof v==='string'?JSON.parse(v):(v||[])}catch{return[
 function opt(sel,items){sel.innerHTML='';items.forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;sel.appendChild(o)})}
 
 async function loadEvents(){
-  st('<span class="spinner"></span> Buscando lutas ativas do UFC na Polymarket...');
+  st('<span class="spinner"></span> A carregar lutas ativas do UFC na Polymarket...');
   try{
     const r=await fetch(G+'/events?tag_slug=ufc&active=true&closed=false&limit=100');
     if(!r.ok)throw new Error('HTTP '+r.status);
@@ -148,8 +146,10 @@ async function loadEvents(){
       v.forEach(m=>FL.push({m,label:v.length>1?e.title+' — '+(m.groupItemTitle||m.question):e.title}))});
     if(!FL.length){st('Nenhuma luta individual com 2 lutadores encontrada.');return}
     opt($('se'),FL.map((x,i)=>[i,x.label]));
+    
+    // Dispara o carregamento automático da primeira opção selecionada
     await mkChange();
-  }catch(e){st('Erro ao acessar a API da Polymarket ('+e.message+'). Verifique sua conexão.')}
+  }catch(e){st('Erro ao aceder à API da Polymarket ('+e.message+'). Verifique a ligação.')}
 }
 
 async function ask(tok,fallback){
@@ -188,10 +188,10 @@ async function fetchTheOddsAPI(fighterA, fighterB){
       (same(e.home_team, fighterB) || same(e.away_team, fighterB))
     );
 
-    if(!match) return {msg:'Luta não encontrada no feed da The Odds API.'};
+    if(!match) return {msg:'Luta não encontrada na The Odds API.'};
 
     const bookmaker = (match.bookmakers || []).find(b => b.key === '1xbet');
-    if(!bookmaker) return {msg:'Odds da 1xbet não disponíveis para esta luta.'};
+    if(!bookmaker) return {msg:'Odds da 1xbet indisponíveis para esta luta.'};
 
     const market = (bookmaker.markets || []).find(m => m.key === 'h2h');
     if(!market || !market.outcomes) return {msg:'Mercado H2H indisponível.'};
@@ -212,13 +212,16 @@ async function fetchTheOddsAPI(fighterA, fighterB){
 }
 
 async function mkChange(){
-  const f=FL[+$('se').value];if(!f)return;const m=f.m;
+  const sel=$('se');
+  if(!sel.value || !FL[+sel.value]) return;
+  const f=FL[+sel.value];
+  const m=f.m;
   const o=arr(m.outcomes),t=arr(m.clobTokenIds),p=arr(m.outcomePrices).map(Number);
   if(o.length<2||t.length<2){st('Mercado selecionado é inválido.');return}
   
   $('na').value=o[0];$('nb').value=o[1];$('xa').value='';$('xx').value='25.00';$('xb').value='';
   
-  st('<span class="spinner"></span> Sincronizando Polymarket e 1xbet...');
+  st('<span class="spinner"></span> A sincronizar dados da Polymarket e 1xbet...');
   
   const [a,b]=await Promise.all([ask(t[0],p[0]),ask(t[1],p[1])]);
   $('pa').value=+(a[0]*100).toFixed(1);$('pb').value=+(b[0]*100).toFixed(1);
@@ -229,17 +232,20 @@ async function mkChange(){
     $('xa').value=res1x.xa;
     $('xx').value=res1x.xx;
     $('xb').value=res1x.xb;
-    xMsg=' Odds 1xbet atualizadas (The Odds API)!';
+    xMsg=' Odds 1xbet atualizadas!';
   } else {
     xMsg=' ⚠️ 1xbet: '+res1x.msg;
   }
   
-  st('Preços Polymarket ok.'+xMsg+' Atualizado às '+new Date().toLocaleTimeString('pt-BR'));
+  st('Preços Polymarket atualizados.'+xMsg+' Às '+new Date().toLocaleTimeString('pt-BR'));
   calc();
 }
 
-$('bl').onclick=loadEvents;
-$('se').onchange=mkChange;
+// Eventos de escuta para gatilho automático ao trocar de opção
+$('se').addEventListener('change', mkChange);
+$('se').addEventListener('input', mkChange);$('bl').onclick=loadEvents;
+document.querySelectorAll('input').forEach(i=>i.addEventListener('input',calc));
+
 window.onload=loadEvents;
 </script>
 </body>
