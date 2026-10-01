@@ -43,7 +43,6 @@ th{color:var(--mut);font-weight:500}
 <h2>Polymarket via API (ao vivo)</h2>
 <button id="bl" type="button">Carregar eventos UFC</button>
 <div style="margin-top:10px"><label>Luta</label><select id="se"></select></div>
-<details style="margin-top:10px"><summary class="note" style="cursor:pointer">⚙ Configurações</summary><div style="margin-top:8px"><label>Chave OddsPapi</label><input id="ok" type="password" value="216c133f-3ec9-4eeb-9b88-630b01210e7a"></div></details>
 <p class="note" id="st" style="margin:8px 0 0">Preenche nomes e preços (melhor ask, o que um taker paga) automaticamente.</p>
 </div>
 
@@ -56,12 +55,11 @@ th{color:var(--mut);font-weight:500}
 </div>
 
 <div class="card">
-<h2>1xbet (odds decimais 1x2)</h2>
+<h2>1xbet (odds decimais 1x2 - Inserção Manual)</h2>
 <div class="grid3">
 <div><label id="lxa">Odd A (1)</label><input id="xa" type="number" step="0.01" value="1.55"></div>
 <div><label>Odd Empate (X)</label><input id="xx" type="number" step="0.01" value="25"></div>
 <div><label id="lxb">Odd B (2)</label><input id="xb" type="number" step="0.01" value="2.60"></div>
-</div>
 </div>
 </div>
 
@@ -77,7 +75,8 @@ th{color:var(--mut);font-weight:500}
 <div id="th"></div>
 <div id="out"></div>
 
-<p class="note">Taxas pré-preenchidas (pesquisa de 30/09/2026): Polymarket cobra taxa só de quem executa a ordem (taker) em esportes: fee = shares × 0,05 × preço × (1 − preço), somada ao custo; A 1xbet não cobra taxa sobre apostas nem Pix (a margem já está nas odds). Confirme no site de cada um, pois mudam com frequência.</p><p class="note">Atenção: confira liquidez/slippage da Polymarket, regras de empate/no contest/anulação (a 1xbet pode devolver a aposta, a Polymarket pode resolver 50/50), limites da casa, custos de câmbio e saque. Esses riscos podem transformar uma "arbitragem" em prejuízo.</p>
+<p class="note">Taxas pré-preenchidas (pesquisa de 30/09/2026): Polymarket cobra taxa só de quem executa a ordem (taker) em esportes: fee = shares × 0,05 × preço × (1 − preço), somada ao custo; A 1xbet não cobra taxa sobre apostas nem Pix (a margem já está nas odds). Confirme no site de cada um, pois mudam com frequência.</p>
+<p class="note">Atenção: confira liquidez/slippage da Polymarket, regras de empate/no contest/anulação (a 1xbet pode devolver a aposta, a Polymarket pode resolver 50/50), limites da casa, custos de câmbio e saque. Esses riscos podem transformar uma "arbitragem" em prejuízo.</p>
 </main>
 
 <script>
@@ -90,7 +89,7 @@ function plan(c,oO,oX,T){
 }
 const cl=v=>`style="color:var(${v>0?'--ok':'--no'})"`;
 function calc(){
-  const A=$('na').value||'A',B=$('nb').value||'B';
+  const A=$('na').value\vert{}\vert{}'A',B=$('nb').value||'B';
   $('lpa').textContent=A+' (¢)';$('lpb').textContent=B+' (¢)';
   $('lxa').textContent='Odd '+A+' (1)';$('lxb').textContent='Odd '+B+' (2)';
   const pa=+$('pa').value,pb=+$('pb').value,xa=+$('xa').value,xx=+$('xx').value,xb=+$('xb').value;
@@ -121,10 +120,12 @@ function calc(){
   `<p class="note">Regra da Polymarket em lutas do UFC: empate/no contest paga US$0,50 por share (50-50) para os dois lados; luta cancelada ou adiada demais também pode ser 50-50 ou preço justo. Na 1xbet (1x2), empate só paga quem apostou em X; confira como ela trata no contest/anulação (muitas vezes devolve a aposta), o que não bate com o 50-50 da Polymarket.</p>`;
 }
 document.querySelectorAll('input,select').forEach(i=>i.addEventListener('input',calc));
+
 const G='https://gamma-api.polymarket.com',C='https://clob.polymarket.com';
 let EVS=[],FL=[];const st=t=>$('st').textContent=t;
 const arr=v=>{try{return typeof v==='string'?JSON.parse(v):(v||[])}catch{return[]}};
 function opt(sel,items){sel.innerHTML='';items.forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;sel.appendChild(o)})}
+
 async function loadEvents(){
   st('Carregando eventos…');
   try{
@@ -139,97 +140,27 @@ async function loadEvents(){
     if(!FL.length){st('Nenhuma luta com 2 lutadores encontrada.');return}
     opt($('se'),FL.map((x,i)=>[i,x.label]));
     mkChange();
-  }catch(e){st('Erro ao acessar a API ('+e.message+'). Abra este arquivo localmente no navegador e verifique CORS/conexão.')}
+  }catch(e){st('Erro ao acessar a API Polymarket ('+e.message+'). Abra este arquivo localmente no navegador e verifique CORS/conexão.')}
 }
+
 async function ask(tok,fallback){
   try{const r=await fetch(C+'/book?token_id='+tok);const b=await r.json();
     const a=(b.asks||[]).map(x=>+x.price).filter(x=>x>0);if(a.length)return [Math.min(...a),true]}catch{}
   return [fallback,false];
 }
 
-const PP='https://api.oddspapi.io/v4';let OC=null;
-const nm=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z ]/g,' ').split(/\s+/).filter(Boolean);
-function same(a,b){const x=nm(a),y=nm(b);if(!x.length||!y.length)return false;
-  const ov=x.filter(t=>y.includes(t)).length;
-  return ov>=2||(x[x.length-1]===y[y.length-1]&&x[0][0]===y[0][0])}
-function lo(a,b){const y=nm(b);return nm(a).some(t=>t.length>=4&&y.includes(t))}
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function pp(path,params,key){
-  let r;
-  try{r=await fetch(PP+path+'?'+new URLSearchParams({...params,apiKey:key}))}
-  catch{throw new Error('sem conexão com a OddsPapi (internet ou bloqueio CORS do navegador)')}
-  if(r.status===401||r.status===403)throw new Error('chave OddsPapi inválida');
-  if(r.status===429)throw new Error('limite da OddsPapi atingido');
-  if(!r.ok)throw new Error('OddsPapi HTTP '+r.status);
-  await sleep(1100);return r.json();
-}
-async function meta(key){
-  let m;try{m=JSON.parse(localStorage.getItem('ppmeta4')||'null')}catch{}
-  if(m&&m.tids&&m.tids.length&&Date.now()-m.t<7*864e5)return m;
-  st('Descobrindo MMA/UFC na OddsPapi (1ª vez)…');
-  const sp=await pp('/sports',{},key);
-  const ms=(Array.isArray(sp)?sp:Object.values(sp)).find(x=>/mma|mixed martial/i.test(JSON.stringify(x)));
-  if(!ms)throw new Error('esporte MMA não encontrado');
-  const sid=ms.sportId??ms.id;
-  const tl=await pp('/tournaments',{sportId:sid},key);
-  let ts=tl.filter(t=>/ufc/i.test(t.tournamentName||t.tournamentSlug||''));
-  if(!ts.length)ts=tl.filter(t=>(t.futureFixtures||0)+(t.upcomingFixtures||0)>0).slice(0,5);
-  if(!ts.length)throw new Error('torneio UFC não encontrado');
-  let mm=null;
-  try{
-    const mk=await pp('/markets',{},key);
-    const bad=/round|method|distance|total|over|under|ko|tko|submission|decision|handicap|first|1st|half|double|draw no bet|prop/i;
-    const w=mk.filter(x=>x.sportId===sid&&x.marketLength===3&&!x.playerProp&&(x.handicap||0)===0&&!bad.test(x.marketName));
-    mm=w.find(x=>x.marketType==='1x2')||w.find(x=>/result|winner|1x2|moneyline|match/i.test(x.marketName))||w[0]||null;
-  }catch{}
-  m={t:Date.now(),sid,tids:ts.map(t=>t.tournamentId),mid:mm?String(mm.marketId):'',o:mm?[...mm.outcomes].sort((p,q)=>p.outcomeId-q.outcomeId).map(o=>String(o.outcomeId)):[]};
-  try{localStorage.setItem('ppmeta4',JSON.stringify(m))}catch{}
-  return m;
-}
-async function xbet(a,b){
-  const key=$('ok').value.trim();if(!key)return{msg:'Informe a chave da OddsPapi em Configurações.'};
-  const m=await meta(key);
-  if(!OC||Date.now()-OC.t>300000){
-    st('Buscando lutas na OddsPapi…');
-    let fx=[];
-    for(const tid of m.tids){const r=await pp('/fixtures',{tournamentId:tid,hasOdds:'true'},key);fx=fx.concat(Array.isArray(r)?r:(r.data||[]))}
-    OC={t:Date.now(),fx};
-  }
-  const cand=OC.fx.filter(f=>f.participant1Name&&f.participant2Name);
-  const sw=(f,fn)=>fn(f.participant1Name,b)&&fn(f.participant2Name,a);
-  const dr=(f,fn)=>fn(f.participant1Name,a)&&fn(f.participant2Name,b);
-  let hit=cand.find(f=>dr(f,same)||sw(f,same))||cand.find(f=>dr(f,lo)||sw(f,lo));
-  if(!hit)return{msg:'Luta não encontrada na OddsPapi ('+cand.length+' lutas'+(cand.length?': '+cand.slice(0,4).map(f=>f.participant1Name+' x '+f.participant2Name).join('; '):'')+'). Digite as odds 1x2 manualmente.'};
-  st('Buscando odds da 1xbet…');
-  const d=await pp('/odds',{fixtureId:hit.fixtureId,bookmakers:'1xbet'},key);
-  const bo=d.bookmakerOdds&&d.bookmakerOdds['1xbet'];
-  if(!bo||!bo.markets)return{msg:'A OddsPapi não tem odds da 1xbet para esta luta. Digite manualmente.'};
-  let mk=m.mid&&bo.markets[m.mid],ids=m.o;
-  if(!mk){
-    const c=Object.entries(bo.markets).filter(([k,v])=>Object.keys(v.outcomes||{}).length===3).sort((x,y)=>x[0]-y[0])[0];
-    if(c){mk=c[1];ids=Object.keys(mk.outcomes).map(Number).sort((x,y)=>x-y).map(String)}
-  }
-  if(!mk)return{msg:'A 1xbet não tem mercado 1x2 para esta luta na OddsPapi. Digite manualmente.'};
-  const pr=o=>{const x=mk.outcomes&&mk.outcomes[o]&&mk.outcomes[o].players&&mk.outcomes[o].players['0'];return x&&x.active!==false?x.price:null};
-  const p1=pr(ids[0]),px=pr(ids[1]),p2=pr(ids[2]);
-  if(!p1||!px||!p2)return{msg:'Odds 1x2 da 1xbet indisponíveis/suspensas agora. Digite manualmente.'};
-  const swap=sw(hit,same)||(!dr(hit,same)&&sw(hit,lo));
-  return swap?{xa:p2,xx:px,xb:p1}:{xa:p1,xx:px,xb:p2};
-}
 async function mkChange(){
   const f=FL[+$('se').value];if(!f)return;const m=f.m;
   const o=arr(m.outcomes),t=arr(m.clobTokenIds),p=arr(m.outcomePrices).map(Number);
   if(o.length<2||t.length<2){st('Mercado sem 2 resultados.');return}
   $('na').value=o[0];$('nb').value=o[1];
-  $('xa').value='';$('xx').value='';$('xb').value='';
-  st('Buscando livro de ordens…');
+  st('Buscando livro de ordens Polymarket…');
   const [a,b]=await Promise.all([ask(t[0],p[0]),ask(t[1],p[1])]);
   $('pa').value=+(a[0]*100).toFixed(1);$('pb').value=+(b[0]*100).toFixed(1);
-  let x='';
-  try{const r=await xbet(o[0],o[1]);if(r.xa){$('xa').value=r.xa;$('xx').value=r.xx;$('xb').value=r.xb;x=' Odds 1x2 da 1xbet preenchidas (OddsPapi).'}else x=' '+r.msg}catch(e){x=' Erro nas odds da 1xbet: '+e.message+'.'}
-  st((a[1]&&b[1]?'Preços Polymarket = melhor ask do livro (CLOB).':'Preços Polymarket = outcomePrices (Gamma).')+x+' Atualizado às '+new Date().toLocaleTimeString('pt-BR')+'.');
+  st((a[1]&&b[1]?'Preços Polymarket = melhor ask do livro (CLOB).':'Preços Polymarket = outcomePrices (Gamma).')+' Atualizado às '+new Date().toLocaleTimeString('pt-BR')+'. Digite as odds da 1xbet manualmente abaixo.');
   calc();
 }
+
 $('bl').onclick=loadEvents;$('se').onchange=mkChange;
 calc();
 </script>
