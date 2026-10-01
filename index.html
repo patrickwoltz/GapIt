@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Arbitragem UFC: Polymarket × 1xbet</title>
+<title>Arbitragem UFC: Polymarket × 1xbet / Pinnacle</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#f6f5f2;--card:#fff;--tx:#1a1a1a;--mut:#6b6b6b;--bd:#ddd9d0;--ok:#157a3b;--okbg:#e3f4e8;--no:#b3261e;--nobg:#fbe9e7;--ac:#c8102e}
@@ -20,7 +20,6 @@ label{display:block;font-size:.78rem;color:var(--mut);margin-bottom:3px}
 input,select{width:100%;padding:10px;font-size:1rem;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx)}
 button{width:100%;padding:10px;font-size:1rem;border:0;border-radius:8px;background:var(--ac);color:#fff;cursor:pointer}
 input[readonly]{opacity:.8;cursor:not-allowed}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 h2{font-size:.95rem;margin:0 0 10px;color:var(--ac)}
 .v{border-radius:12px;padding:14px;font-weight:600;margin-bottom:12px}
 .v.ok{background:var(--okbg);color:var(--ok)}.v.no{background:var(--nobg);color:var(--no)}
@@ -34,8 +33,8 @@ th{color:var(--mut);font-weight:500}
 </head>
 <body>
 <main>
-<h1>Arbitragem UFC · Polymarket × 1xbet</h1>
-<p class="s">Mercado de 2 resultados (Lutador A vs B). Preencha e veja se compensa.</p>
+<h1>Arbitragem UFC · Polymarket × Casa de Aposta</h1>
+<p class="s">Mercado de 2 resultados (Lutador A vs B - Two-Way). Preencha e veja se compensa.</p>
 
 <input type="hidden" id="na" value="Lutador A"><input type="hidden" id="nb" value="Lutador B">
 
@@ -55,11 +54,10 @@ th{color:var(--mut);font-weight:500}
 </div>
 
 <div class="card">
-<h2>1xbet (odds decimais 1x2 - Inserção Manual)</h2>
-<div class="grid3">
-<div><label id="lxa">Odd A (1)</label><input id="xa" type="number" step="0.01" value="1.55"></div>
-<div><label>Odd Empate (X)</label><input id="xx" type="number" step="0.01" value="25"></div>
-<div><label id="lxb">Odd B (2)</label><input id="xb" type="number" step="0.01" value="2.60"></div>
+<h2>Casa de Aposta (Odds decimais - Two-Way)</h2>
+<div class="grid">
+<div><label id="lxa">Odd A</label><input id="xa" type="number" step="0.01" value="1.55"></div>
+<div><label id="lxb">Odd B</label><input id="xb" type="number" step="0.01" value="2.60"></div>
 </div>
 </div>
 
@@ -75,50 +73,69 @@ th{color:var(--mut);font-weight:500}
 <div id="th"></div>
 <div id="out"></div>
 
-<p class="note">Taxas pré-preenchidas (pesquisa de 30/09/2026): Polymarket cobra taxa só de quem executa a ordem (taker) em esportes: fee = shares × 0,05 × preço × (1 − preço), somada ao custo; A 1xbet não cobra taxa sobre apostas nem Pix (a margem já está nas odds). Confirme no site de cada um, pois mudam com frequência.</p>
-<p class="note">Atenção: confira liquidez/slippage da Polymarket, regras de empate/no contest/anulação (a 1xbet pode devolver a aposta, a Polymarket pode resolver 50/50), limites da casa, custos de câmbio e saque. Esses riscos podem transformar uma "arbitragem" em prejuízo.</p>
+<p class="note">Taxas pré-preenchidas (pesquisa de 30/09/2026): Polymarket cobra taxa só de quem executa a ordem (taker) em esportes: fee = shares × 0,05 × preço × (1 − preço), somada ao custo. Confirme no site de cada casa, pois regras e taxas mudam com frequência.</p>
+<p class="note">Atenção: confira liquidez/slippage da Polymarket, regras de no contest/anulação (a casa de aposta pode devolver a aposta, a Polymarket pode resolver 50/50), limites da casa, custos de câmbio e saque.</p>
 </main>
 
 <script>
 const $=id=>document.getElementById(id);
 const f=n=>n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 function cst(p,fp){const q=p/100;return q*(1+fp*(1-q))}
-function plan(c,oO,oX,T){
-  const sf=c+1/oO+0.5/oX,sp=c+1/oO,Rf=T/sf,Rp=T/sp;
-  return {c,Rf,Rp,xOf:Rf/oO,xXf:0.5*Rf/oX,pf:Rf-T,pp:Rp-T,pd:0.5*Rp-T,xOp:Rp/oO,sf,sp};
+
+function plan2Way(c,oO,T){
+  const sp=c+1/oO, Rp=T/sp;
+  return {c, Rp, xOp:Rp/oO, pp:Rp-T, sp};
 }
+
 const cl=v=>`style="color:var(${v>0?'--ok':'--no'})"`;
+
 function calc(){
   const A=$('na').value\vert{}\vert{}'A',B=$('nb').value||'B';
   $('lpa').textContent=A+' (¢)';$('lpb').textContent=B+' (¢)';
-  $('lxa').textContent='Odd '+A+' (1)';$('lxb').textContent='Odd '+B+' (2)';
-  const pa=+$('pa').value,pb=+$('pb').value,xa=+$('xa').value,xx=+$('xx').value,xb=+$('xb').value;
+  $('lxa').textContent='Odd '+A;$('lxb').textContent='Odd '+B;
+  
+  const pa=+$('pa').value,pb=+$('pb').value,xa=+$('xa').value,xb=+$('xb').value;
   const T=+$('T').value,fp=+$('fp').value;
   const okP=pa>0&&pa<100&&pb>0&&pb<100;
+  
   if(!okP){$('th').innerHTML='';$('out').innerHTML='';return}
-  const cA=cst(pa,fp),cB=cst(pb,fp),dr=xx>1?0.5/xx:null;
-  const trow=(who,c,opp)=>{const mp=1/(1-c),d=1-c-(dr||0),mf=dr!==null&&d>0?1/d:null;
-    return `<tr><th>${opp} na 1xbet</th><td>&gt; <b>${f(mp)}</b></td><td>${mf?'&gt; <b>'+f(mf)+'</b>':'—'}</td><td class="note">c/ ${who} na Poly</td></tr>`};
-  $('th').innerHTML=`<div class="card"><h2>Odd mínima na 1xbet (1x2) para dar lucro</h2><table>
-  <tr><th></th><th>Sem cobrir empate</th><th>Cobrindo empate</th><th></th></tr>${trow(A,cA,B)}${trow(B,cB,A)}</table>
-  <p class="note" style="margin:8px 0 0">"Cobrindo empate" usa a odd do Empate (X) digitada. Já inclui a taxa taker da Polymarket.</p></div>`;
-  if(!(xa>1&&xx>1&&xb>1&&T>0)){$('out').innerHTML='';return}
-  const c1={...plan(cA,xb,xx,T),poly:A,opp:B,oO:xb};
-  const c2={...plan(cB,xa,xx,T),poly:B,opp:A,oO:xa};
-  const bf=c1.pf>=c2.pf?c1:c2,bp=c1.pp>=c2.pp?c1:c2;
+  
+  const cA=cst(pa,fp),cB=cst(pb,fp);
+  
+  const trow=(who,c,opp)=>{
+    const mp=1/(1-c);
+    return `<tr><th>${opp} na Casa</th><td>&gt; <b>${f(mp)}</b></td><td class="note">c/ ${who} na Poly</td></tr>`;
+  };
+  
+  $('th').innerHTML=`<div class="card"><h2>Odd mínima na Casa (Two-Way) para dar lucro</h2><table>
+  <tr><th>Aposta</th><th>Odd Mínima</th><th></th></tr>${trow(A,cA,B)}${trow(B,cB,A)}</table></div>`;
+  
+  if(!(xa>1&&xb>1&&T>0)){$('out').innerHTML='';return}
+  
+  const c1={...plan2Way(cA,xb,T),poly:A,opp:B,oO:xb};
+  const c2={...plan2Way(cB,xa,T),poly:B,opp:A,oO:xa};
+  
+  const bp=c1.pp>=c2.pp?c1:c2;
   let v,cls,sub;
-  if(bf.pf>0){cls='ok';v='✅ COMPENSA (garantido, cobrindo o empate)';sub=`${bf.poly} na Polymarket + ${bf.opp} e Empate na 1xbet → lucro ${f(bf.pf)} (${(bf.pf/T*100).toFixed(2)}%) em qualquer resultado.`}
-  else if(bp.pp>0){cls='no';v='⚠️ SÓ COMPENSA SEM COBRIR O EMPATE (tem risco)';sub=`Lucro ${f(bp.pp)} se alguém vencer, mas ${f(bp.pd)} se empatar/no contest.`}
-  else{cls='no';v='❌ NÃO COMPENSA';sub=`Melhor cenário cobrindo empate: ${f(bf.pf)} (${(bf.pf/T*100).toFixed(2)}%).`}
-  const card=(c,best)=>`<div class="card ${best?'best':''}"><h2>${c.poly} na Polymarket + ${c.opp} (e Empate) na 1xbet</h2><table>
-  <tr><th>Polymarket</th><td>${c.poly}</td><td>${f(c.Rf*c.c)} (${f(c.Rf)} shares)</td></tr>
-  <tr><th>1xbet</th><td>${c.opp} @ ${f(c.oO)}</td><td>${f(c.xOf)}</td></tr>
-  <tr><th>1xbet</th><td>Empate @ ${f(xx)}</td><td>${f(c.xXf)}</td></tr>
-  <tr><th>Cobrindo empate</th><td colspan="2"><b ${cl(c.pf)}>${f(c.pf)} (${(c.pf/T*100).toFixed(2)}%) em qualquer resultado</b></td></tr>
-  <tr><th>Sem apostar no empate</th><td colspan="2">Se alguém vencer: <b ${cl(c.pp)}>${f(c.pp)}</b> · se empatar: <b ${cl(c.pd)}>${f(c.pd)}</b></td></tr></table></div>`;
-  $('out').innerHTML=`<div class="v ${cls}">${v}<small>${sub}</small></div>`+card(c1,c1===bf)+card(c2,c2===bf)+
-  `<p class="note">Regra da Polymarket em lutas do UFC: empate/no contest paga US$0,50 por share (50-50) para os dois lados; luta cancelada ou adiada demais também pode ser 50-50 ou preço justo. Na 1xbet (1x2), empate só paga quem apostou em X; confira como ela trata no contest/anulação (muitas vezes devolve a aposta), o que não bate com o 50-50 da Polymarket.</p>`;
+  
+  if(bp.pp>0){
+    cls='ok';
+    v='✅ COMPENSA (Lucro garantido em Two-Way)';
+    sub=`${bp.poly} na Polymarket + ${bp.opp} na Casa de Apostas → lucro de ${f(bp.pp)} (${(bp.pp/T*100).toFixed(2)}%).`;
+  } else {
+    cls='no';
+    v='❌ NÃO COMPENSA';
+    sub=`Melhor cenário: retorno de ${f(bp.pp)} (${(bp.pp/T*100).toFixed(2)}%).`;
+  }
+  
+  const card=(c,best)=>`<div class="card ${best?'best':''}"><h2>${c.poly} na Polymarket + ${c.opp} na Casa</h2><table>
+  <tr><th>Polymarket</th><td>${c.poly}</td><td>${f(c.Rp*c.c)} (${f(c.Rp)} shares)</td></tr>
+  <tr><th>Casa de Aposta</th><td>${c.opp} @ ${f(c.oO)}</td><td>${f(c.xOp)}</td></tr>
+  <tr><th>Resultado</th><td colspan="2"><b ${cl(c.pp)}>${f(c.pp)} (${(c.pp/T*100).toFixed(2)}%) em qualquer resultado</b></td></tr></table></div>`;
+  
+  $('out').innerHTML=`<div class="v ${cls}">${v}<small>${sub}</small></div>`+card(c1,c1===bp)+card(c2,c2===bp);
 }
+
 document.querySelectorAll('input,select').forEach(i=>i.addEventListener('input',calc));
 
 const G='https://gamma-api.polymarket.com',C='https://clob.polymarket.com';
@@ -157,7 +174,7 @@ async function mkChange(){
   st('Buscando livro de ordens Polymarket…');
   const [a,b]=await Promise.all([ask(t[0],p[0]),ask(t[1],p[1])]);
   $('pa').value=+(a[0]*100).toFixed(1);$('pb').value=+(b[0]*100).toFixed(1);
-  st((a[1]&&b[1]?'Preços Polymarket = melhor ask do livro (CLOB).':'Preços Polymarket = outcomePrices (Gamma).')+' Atualizado às '+new Date().toLocaleTimeString('pt-BR')+'. Digite as odds da 1xbet manualmente abaixo.');
+  st((a[1]&&b[1]?'Preços Polymarket = melhor ask do livro (CLOB).':'Preços Polymarket = outcomePrices (Gamma).')+' Atualizado às '+new Date().toLocaleTimeString('pt-BR')+'. Digite as odds two-way manualmente.');
   calc();
 }
 
