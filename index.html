@@ -40,10 +40,10 @@ th{color:var(--mut);font-weight:500}
 
 <div class="card">
 <h2>Polymarket via API (ao vivo)</h2>
-<button id="bl" type="button">Carregar eventos UFC</button>
+<button id="bl" type="button">Carregar lutas do UFC</button>
 <div style="margin-top:10px">
   <label>Selecione a Luta</label>
-  <select id="se"><option value="">Clique em "Carregar eventos UFC"</option></select>
+  <select id="se"><option value="">Clique em "Carregar lutas do UFC"</option></select>
 </div>
 <p class="note" id="st" style="margin:8px 0 0">Puxe as lutas ao vivo para selecionar e obter as odds da Polymarket.</p>
 </div>
@@ -139,14 +139,23 @@ function calc(){
 
 document.querySelectorAll('input,select').forEach(i=>i.addEventListener('input',calc));
 
-// Integração com APIs da Polymarket
+// --- INTEGRAÇÃO ROBUSTA COM A API DO POLYMARKET ---
 const G='https://gamma-api.polymarket.com',C='https://clob.polymarket.com';
-let EVS=[],FL=[];
+let FL=[];
 const st=t=>$('st').textContent=t;
-const arr=v=>{try{return typeof v==='string'?JSON.parse(v):(v||[])}catch{return[]}};
 
-function opt(sel,items){
+const parseArr=v=>{
+  if(!v) return [];
+  if(Array.isArray(v)) return v;
+  try{ return JSON.parse(v); }catch{ return []; }
+};
+
+function fillSelect(sel, items){
   sel.innerHTML='';
+  if(!items.length){
+    sel.innerHTML='<option value="">Nenhuma luta encontrada</option>';
+    return;
+  }
   items.forEach(([v,t])=>{
     const o=document.createElement('option');
     o.value=v;
@@ -155,71 +164,91 @@ function opt(sel,items){
   });
 }
 
-// 1. Busca os eventos ativos do UFC na Gamma API
+// Puxa lutas da Polymarket usando busca ampla no Endpoint de Mercados
 async function loadEvents(){
   st('Carregando lutas do UFC na Polymarket…');
+  FL=[];
   try{
-    const r=await fetch(G+'/events?tag_slug=ufc&active=true&closed=false&limit=100');
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    EVS=(await r.json()).filter(e=>(e.markets||[]).length);
-    EVS.sort((a,b)=>new Date(a.endDate||a.startDate||0)-new Date(b.endDate||b.startDate||0));
-    
-    if(!EVS.length){st('Nenhum evento do UFC ativo encontrado no momento.');return}
-    
-    const bad=/^(yes|no|over|under|draw)$/i;
-    FL=[];
-    
-    EVS.forEach(e=>{
-      const v=e.markets.filter(m=>m.active!==false&&!m.closed).filter(m=>{
-        const o=arr(m.outcomes);
-        return o.length==2&&!bad.test(o[0])&&!bad.test(o[1]);
-      });
-      v.forEach(m=>FL.push({m,label:v.length>1?e.title+' — '+(m.groupItemTitle||m.question):e.title}));
+    // Busca mercados ativos relacionados a UFC na Gamma API
+    let res = await fetch(`${G}/markets?active=true&closed=false&limit=100&q=ufc`);
+    if(!res.ok) res = await fetch(`${G}/events?tag_slug=ufc&active=true&closed=false&limit=100`);
+    if(!res.ok) throw new Error('Falha ao conectar com a API do Polymarket.');
+
+    const data = await res.json();
+    const rawMarkets = Array.isArray(data) ? data : (data.markets || []);
+
+    const badWords = /^(yes|no|over|under|draw)$/i;
+
+    rawMarkets.forEach(m => {
+      const outcomes = parseArr(m.outcomes);
+      const clobTokens = parseArr(m.clobTokenIds);
+      const prices = parseArr(m.outcomePrices).map(Number);
+
+      // Garante que é um mercado H2H de 2 lutadores (Two-Way)
+      if(outcomes.length === 2 && clobTokens.length >= 2 && !badWords.test(outcomes[0]) && !badWords.test(outcomes[1])){
+        const label = m.groupItemTitle ? `${m.groupItemTitle} (${outcomes[0]} vs ${outcomes[1]})` : (m.question || `${outcomes[0]} vs ${outcomes[1]}`);
+        FL.push({
+          label,
+          outcomes,
+          tokens: clobTokens,
+          prices
+        });
+      }
     });
-    
-    if(!FL.length){st('Nenhuma luta de 2 resultados (Lutador vs Lutador) encontrada.');return}
-    
-    opt($('se'),FL.map((x,i)=>[i,x.label]));
-    mkChange(); // Seleciona a primeira luta da lista automaticamente
+
+    if(!FL.length){
+      st('Nenhum mercado ativo de luta UFC encontrado na Polymarket no momento.');
+      fillSelect($('se'), []);
+      return;
+    }
+
+    fillSelect($('se'), FL.map((item, idx) => [idx, item.label]));
+    st(`Sucesso! ${FL.length} luta(s) encontrada(s). Selecione abaixo.`);
+    mkChange(); // Seleciona a primeira luta da lista
   }catch(e){
-    st('Erro ao buscar eventos Polymarket ('+e.message+'). Abra localmente e verifique a conexão.');
+    st('Erro ao carregar rotas da Polymarket: '+e.message);
   }
 }
 
-// 2. Busca o preço (melhor Ask) no CLOB Orderbook da Polymarket
-async function ask(tok,fallback){
+// Puxa os preços em tempo real no Orderbook (CLOB API)
+async function ask(tokenId, fallbackPrice){
   try{
-    const r=await fetch(C+'/book?token_id='+tok);
-    const b=await r.json();
-    const a=(b.asks||[]).map(x=>+x.price).filter(x=>x>0);
-    if(a.length) return [Math.min(...a), true];
+    const r = await fetch(`${C}/book?token_id=${tokenId}`);
+    if(r.ok){
+      const b = await r.json();
+      const asks = (b.asks||[]).map(x => +x.price).filter(x => x > 0);
+      if(asks.length) return [Math.min(...asks), true];
+    }
   }catch{}
-  return [fallback, false];
+  return [fallbackPrice || 0.5, false];
 }
 
-// 3. Ao mudar a seleção da luta, atualiza os nomes dos lutadores e as odds (¢)
+// Disparado ao selecionar uma luta na lista suspensa
 async function mkChange(){
-  const f=FL[+$('se').value];
-  if(!f) return;
-  const m=f.m;
-  const o=arr(m.outcomes), t=arr(m.clobTokenIds), p=arr(m.outcomePrices).map(Number);
-  
-  if(o.length<2||t.length<2){st('Mercado selecionado não possui 2 lutadores.');return}
-  
-  $('na').value=o[0];$('nb').value=o[1];
-  
-  st('Buscando odds em tempo real na Polymarket…');
-  const [a,b]=await Promise.all([ask(t[0],p[0]), ask(t[1],p[1])]);
-  
-  // Atualiza os inputs de centavos da Polymarket
-  $('pa').value=+(a[0]*100).toFixed(1);$('pb').value=+(b[0]*100).toFixed(1);
-  
-  st(`Luta carregada: ${o[0]} vs ${o[1]}. Odds atualizadas às ${new Date().toLocaleTimeString('pt-BR')}.`);
+  const selectedIdx = +$('se').value;
+  const item = FL[selectedIdx];
+  if(!item) return;
+
+  const [aName, bName] = item.outcomes;
+  $('na').value = aName;
+  $('nb').value = bName;
+
+  st(`Obtendo cotações ao vivo para: ${aName} vs ${bName}…`);
+
+  const [priceA, priceB] = await Promise.all([
+    ask(item.tokens[0], item.prices[0]),
+    ask(item.tokens[1], item.prices[1])
+  ]);
+
+  // Converte para centavos (¢)
+  $('pa').value = +(priceA[0] * 100).toFixed(1);$('pb').value = +(priceB[0] * 100).toFixed(1);
+
+  st(`Odds da Polymarket atualizadas às ${new Date().toLocaleTimeString('pt-BR')}! Insira as odds da Casa de Apostas.`);
   calc();
 }
 
-$('bl').onclick=loadEvents;
-$('se').onchange=mkChange;
+$('bl').onclick = loadEvents;
+$('se').onchange = mkChange;
 calc();
 </script>
 </body>
