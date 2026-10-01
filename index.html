@@ -43,7 +43,7 @@ th{color:var(--mut);font-weight:500}
 <h2>Polymarket via API (ao vivo)</h2>
 <button id="bl" type="button">Carregar eventos UFC</button>
 <div style="margin-top:10px"><label>Luta</label><select id="se"></select></div>
-<details style="margin-top:10px"><summary class="note" style="cursor:pointer">⚙ Configurações</summary><div style="margin-top:8px"><label>Chave The Odds API</label><input id="ok" type="password" placeholder="Insira sua API Key da The Odds API"></div></details>
+<details style="margin-top:10px"><summary class="note" style="cursor:pointer">⚙ Configurações</summary><div style="margin-top:8px"><label>Chave The Odds API</label><input id="ok" type="password" value="e60394bb3a65a22034b689b6017e1fe9"></div></details>
 <p class="note" id="st" style="margin:8px 0 0">Preenche nomes e preços (melhor ask, o que um taker paga) automaticamente.</p>
 </div>
 
@@ -197,7 +197,7 @@ async function xbet(a,b){
 
     const p1 = homeOutcome ? homeOutcome.price : null;
     const p2 = awayOutcome ? awayOutcome.price : null;
-    const px = drawOutcome ? drawOutcome.price : 25.0; // Valor padrão de empate caso a casa ofereça 2-way
+    const px = drawOutcome ? drawOutcome.price : 25.0;
 
     if(!p1 || !p2) return {msg:'Odds da 1xBet incompletas. Digite manualmente.'};
 
