@@ -362,8 +362,8 @@
     (function () {
       "use strict";
 
-      var API_URL =
-        "https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=100&order=endDate&ascending=true";
+      var TAMANHO_PAGINA = 100;
+      var TOTAL_DE_PAGINAS = 10;
 
       var formulario = document.getElementById("formulario");
       var campoDias = document.getElementById("dias");
@@ -714,6 +714,35 @@
         `;
       }
 
+      function criarUrlDaPagina(numeroDaPagina) {
+        var offset = numeroDaPagina * TAMANHO_PAGINA;
+
+        return (
+          "https://gamma-api.polymarket.com/markets" +
+          "?active=true" +
+          "&closed=false" +
+          "&limit=" + TAMANHO_PAGINA +
+          "&offset=" + offset
+        );
+      }
+
+      function buscarPagina(numeroDaPagina) {
+        return fetch(criarUrlDaPagina(numeroDaPagina))
+          .then(function (resposta) {
+            if (!resposta.ok) {
+              throw new Error(
+                "A API respondeu com erro " +
+                resposta.status +
+                " na página " +
+                (numeroDaPagina + 1) +
+                "."
+              );
+            }
+
+            return resposta.json();
+          });
+      }
+
       function carregarMercados() {
         var filtros;
 
@@ -725,7 +754,7 @@
         }
 
         status.textContent =
-          "Consultando mercados próximos da resolução...";
+          "Consultando até 1.000 mercados da Polymarket...";
 
         resultados.innerHTML = `
           <div class="message">
@@ -735,27 +764,35 @@
 
         definirCarregamento(true);
 
-        fetch(API_URL)
-          .then(function (resposta) {
-            if (!resposta.ok) {
-              throw new Error(
-                "A API respondeu com erro " +
-                resposta.status +
-                "."
-              );
+        var promessas = [];
+
+        for (
+          var pagina = 0;
+          pagina < TOTAL_DE_PAGINAS;
+          pagina++
+        ) {
+          promessas.push(buscarPagina(pagina));
+        }
+
+        Promise.all(promessas)
+          .then(function (paginas) {
+            var todosOsMercados = [];
+
+            for (var i = 0; i < paginas.length; i++) {
+              if (Array.isArray(paginas[i])) {
+                todosOsMercados =
+                  todosOsMercados.concat(paginas[i]);
+              }
             }
 
-            return resposta.json();
-          })
-          .then(function (mercados) {
-            if (!Array.isArray(mercados)) {
+            if (todosOsMercados.length === 0) {
               throw new Error(
-                "A API não retornou uma lista de mercados."
+                "A API não retornou mercados nas páginas consultadas."
               );
             }
 
             var resultado = filtrarMercados(
-              mercados,
+              todosOsMercados,
               filtros
             );
 
@@ -766,7 +803,7 @@
               );
 
               status.textContent =
-                "A API retornou " +
+                "Foram analisados " +
                 resultado.diagnostico.recebidos +
                 " mercados; nenhum passou nos filtros.";
 
@@ -781,7 +818,9 @@
 
             status.textContent =
               resultado.aprovados.length +
-              " mercado(s) encontrado(s).";
+              " mercado(s) encontrado(s), após analisar " +
+              todosOsMercados.length +
+              " mercados.";
           })
           .catch(function (erro) {
             console.error(erro);
