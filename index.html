@@ -1,104 +1,1289 @@
 <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bonding Radar</title>
+  <title>Painel Polymarket Bonding</title>
+
   <style>
-    :root { --bg:#0b1020; --panel:#151c32; --border:#2e3b62; --text:#f1f5ff; --muted:#aab7d6; --blue:#4f7cff; --green:#35d39a; --red:#ff7280; --yellow:#f7c948; }
-    * { box-sizing:border-box; }
-    body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font-family:Arial,Helvetica,sans-serif; }
-    header { padding:28px 20px; border-bottom:1px solid var(--border); background:#11182d; }
-    .container { width:min(1100px,calc(100% - 32px)); margin:0 auto; }
-    h1 { margin:0; font-size:clamp(1.6rem,4vw,2.3rem); }
-    .subtitulo { margin:10px 0 0; color:var(--muted); line-height:1.5; }
-    main { padding:32px 0 48px; }
-    .panel,.card,.message { border:1px solid var(--border); border-radius:14px; background:var(--panel); }
-    .panel { padding:20px; margin-bottom:24px; }
-    .panel h2 { margin:0 0 8px; font-size:1.15rem; }
-    .help { margin:0 0 18px; color:var(--muted); line-height:1.5; }
-    .filters { display:grid; grid-template-columns:repeat(4,minmax(150px,1fr)); gap:14px; }
-    .field { display:grid; gap:7px; }
-    label { color:var(--muted); font-size:.9rem; }
-    input { width:100%; padding:11px 12px; border:1px solid var(--border); border-radius:8px; background:#0c1224; color:var(--text); font:inherit; }
-    input:focus { outline:2px solid var(--blue); outline-offset:1px; }
-    .actions,.bar { display:flex; flex-wrap:wrap; gap:10px; }
-    .actions { margin-top:18px; }
-    .bar { justify-content:space-between; align-items:center; margin-bottom:20px; }
-    button,.link-button { display:inline-flex; align-items:center; justify-content:center; padding:11px 16px; border:0; border-radius:8px; background:var(--blue); color:#fff; font:inherit; font-weight:bold; cursor:pointer; text-decoration:none; }
-    button:hover:not(:disabled),.link-button:hover { filter:brightness(1.1); }
-    button:disabled { opacity:.65; cursor:wait; }
-    .secondary { border:1px solid var(--border); background:transparent; color:var(--text); }
-    .status { margin:0; color:var(--muted); line-height:1.5; }
-    .markets { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:16px; }
-    .card { display:flex; flex-direction:column; min-height:390px; padding:20px; }
-    .badge { display:inline-flex; align-self:flex-start; margin-bottom:14px; padding:6px 10px; border-radius:999px; background:rgba(247,201,72,.12); color:var(--yellow); font-size:.78rem; font-weight:bold; letter-spacing:.04em; text-transform:uppercase; }
-    .question { margin:0 0 16px; font-size:1.05rem; line-height:1.45; }
-    .highlights { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:auto; }
-    .highlight { padding:12px; border-radius:10px; text-align:center; font-weight:bold; line-height:1.45; }
-    .positive { background:rgba(53,211,154,.12); color:var(--green); }
-    .negative { background:rgba(255,114,128,.12); color:var(--red); }
-    .details { display:grid; gap:10px; margin-top:14px; }
-    .row { display:flex; justify-content:space-between; gap:16px; color:var(--muted); font-size:.9rem; line-height:1.4; }
-    .row strong { color:var(--text); text-align:right; }
-    .footer { margin-top:20px; }
-    .footer .link-button { width:100%; }
-    .message { grid-column:1 / -1; padding:24px; color:var(--muted); text-align:center; line-height:1.6; }
-    .message.error { border-color:rgba(255,114,128,.55); background:rgba(255,114,128,.1); color:#ffd8dc; }
-    @media (max-width:800px) { .filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-    @media (max-width:480px) { .filters { grid-template-columns:1fr; } .bar { align-items:stretch; } .bar button { width:100%; } }
+    :root {
+      --bg: #0b1020;
+      --panel: #151c32;
+      --border: #2e3b62;
+      --text: #f1f5ff;
+      --muted: #aab7d6;
+      --blue: #4f7cff;
+      --green: #35d39a;
+      --red: #ff7280;
+      --yellow: #f7c948;
+      --orange: #ff9f43;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    header {
+      padding: 28px 20px;
+      border-bottom: 1px solid var(--border);
+      background: #11182d;
+    }
+
+    .container {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 4vw, 2.3rem);
+    }
+
+    .subtitulo {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    main {
+      padding: 32px 0 48px;
+    }
+
+    .panel,
+    .card,
+    .message {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--panel);
+    }
+
+    .panel {
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 1.15rem;
+    }
+
+    .help {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(145px, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0c1224;
+      color: var(--text);
+      font: inherit;
+    }
+
+    input:focus {
+      outline: 2px solid var(--blue);
+      outline-offset: 1px;
+    }
+
+    .actions,
+    .bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .actions {
+      margin-top: 18px;
+    }
+
+    .bar {
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    button,
+    .link-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 11px 16px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--blue);
+      color: #ffffff;
+      font: inherit;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    button:hover:not(:disabled),
+    .link-button:hover {
+      filter: brightness(1.1);
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: wait;
+    }
+
+    .secondary {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+    }
+
+    .status {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .markets {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      min-height: 480px;
+      padding: 20px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-self: flex-start;
+      margin-bottom: 14px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(247, 201, 72, 0.12);
+      color: var(--yellow);
+      font-size: 0.78rem;
+      font-weight: bold;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .question {
+      margin: 0 0 16px;
+      font-size: 1.05rem;
+      line-height: 1.45;
+    }
+
+    .highlights {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: auto;
+    }
+
+    .highlight {
+      padding: 12px;
+      border-radius: 10px;
+      text-align: center;
+      font-weight: bold;
+      line-height: 1.45;
+    }
+
+    .positive {
+      background: rgba(53, 211, 154, 0.12);
+      color: var(--green);
+    }
+
+    .negative {
+      background: rgba(255, 114, 128, 0.12);
+      color: var(--red);
+    }
+
+    .book-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .book-title {
+      margin: 0 0 10px;
+      color: var(--yellow);
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .details {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .row strong {
+      color: var(--text);
+      text-align: right;
+    }
+
+    .row .good {
+      color: var(--green);
+    }
+
+    .row .warning {
+      color: var(--orange);
+    }
+
+    .row .bad {
+      color: var(--red);
+    }
+
+    .card-footer {
+      display: grid;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .card-footer .link-button {
+      width: 100%;
+    }
+
+    .message {
+      grid-column: 1 / -1;
+      padding: 24px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .message.error {
+      border-color: rgba(255, 114, 128, 0.55);
+      background: rgba(255, 114, 128, 0.1);
+      color: #ffd8dc;
+    }
+
+    .note {
+      margin-top: 18px;
+      padding: 12px;
+      border-left: 3px solid var(--yellow);
+      background: rgba(247, 201, 72, 0.08);
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1000px) {
+      .filters {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 650px) {
+      .filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 480px) {
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .bar {
+        align-items: stretch;
+      }
+
+      .bar button {
+        width: 100%;
+      }
+    }
   </style>
 </head>
+
 <body>
-  <header><div class="container"><h1>Bonding Radar</h1><p class="subtitulo">Um filtro voltado à Bonding em mercados abertos na Polymarket</p></div></header>
+  <header>
+    <div class="container">
+      <h1>Painel Polymarket Bonding</h1>
+
+      <p class="subtitulo">
+        Filtre mercados e confira preços realmente disponíveis no livro de ordens.
+      </p>
+    </div>
+  </header>
+
   <main class="container">
     <section class="panel">
       <h2>Filtros de mercado</h2>
-      <p class="help">Ajuste os valores e clique em “Aplicar filtros”.</p>
+
+      <p class="help">
+        O filtro de probabilidade usa o preço de catálogo. Depois, o painel consulta
+        o livro CLOB para verificar ask, bid, spread e retorno bruto no ask.
+      </p>
+
       <form id="formulario">
         <div class="filters">
-          <div class="field"><label for="dias">Resolução em até (dias)</label><input id="dias" type="number" min="1" max="30" value="7"></div>
-          <div class="field"><label for="prob-min">Probabilidade mínima (%)</label><input id="prob-min" type="number" min="1" max="99" step="0.1" value="90"></div>
-          <div class="field"><label for="prob-max">Probabilidade máxima (%)</label><input id="prob-max" type="number" min="1" max="99" step="0.1" value="99"></div>
-          <div class="field"><label for="liquidez">Liquidez mínima (US$)</label><input id="liquidez" type="number" min="0" step="1000" value="10000"></div>
+          <div class="field">
+            <label for="dias">Resolução em até (dias)</label>
+            <input id="dias" type="number" min="1" max="30" value="7">
+          </div>
+
+          <div class="field">
+            <label for="prob-min">Probabilidade mínima (%)</label>
+            <input id="prob-min" type="number" min="1" max="99" step="0.1" value="90">
+          </div>
+
+          <div class="field">
+            <label for="prob-max">Probabilidade máxima (%)</label>
+            <input id="prob-max" type="number" min="1" max="99" step="0.1" value="99">
+          </div>
+
+          <div class="field">
+            <label for="liquidez">Liquidez mínima (US$)</label>
+            <input id="liquidez" type="number" min="0" step="1000" value="10000">
+          </div>
+
+          <div class="field">
+            <label for="spread-max">Spread máximo (pontos)</label>
+            <input id="spread-max" type="number" min="0" max="100" step="0.1" value="5">
+          </div>
         </div>
-        <div class="actions"><button id="aplicar" type="submit">Aplicar filtros</button><button id="restaurar" class="secondary" type="button">Restaurar padrão</button></div>
+
+        <div class="actions">
+          <button id="aplicar" type="submit">
+            Aplicar filtros
+          </button>
+
+          <button
+            id="restaurar"
+            class="secondary"
+            type="button"
+          >
+            Restaurar padrão
+          </button>
+        </div>
       </form>
+
+      <div class="note">
+        “Spread máximo” é aplicado após consultar o CLOB. Um ponto equivale a US$ 0,01:
+        por exemplo, 5 pontos significa spread máximo de US$ 0,05.
+      </div>
     </section>
-    <div class="bar"><p id="status" class="status">Aguardando consulta...</p><button id="atualizar" type="button">Atualizar dados</button></div>
-    <section id="resultados" class="markets"><div class="message">A página foi carregada. Consultando a Polymarket...</div></section>
+
+    <div class="bar">
+      <p id="status" class="status">
+        Aguardando consulta...
+      </p>
+
+      <button id="atualizar" type="button">
+        Atualizar dados
+      </button>
+    </div>
+
+    <section id="resultados" class="markets">
+      <div class="message">
+        A página foi carregada. Consultando a Polymarket...
+      </div>
+    </section>
   </main>
+
   <script>
     (function () {
       "use strict";
-      var TAMANHO_PAGINA=100, TOTAL_DE_PAGINAS=10;
-      var formulario=document.getElementById("formulario"), campoDias=document.getElementById("dias"), campoProbMin=document.getElementById("prob-min"), campoProbMax=document.getElementById("prob-max"), campoLiquidez=document.getElementById("liquidez"), botaoAplicar=document.getElementById("aplicar"), botaoRestaurar=document.getElementById("restaurar"), botaoAtualizar=document.getElementById("atualizar"), status=document.getElementById("status"), resultados=document.getElementById("resultados");
-      function esc(v){var e=document.createElement("div");e.textContent=v==null?"":String(v);return e.innerHTML;}
-      function money(v){var n=Number(v);return isFinite(n)?new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}).format(n):"Não informado";}
-      function arr(v){if(Array.isArray(v))return v;if(typeof v==="string"){try{var x=JSON.parse(v);return Array.isArray(x)?x:[];}catch(e){return [];}}return [];}
-      function filters(){var d=Number(campoDias.value),a=Number(campoProbMin.value),b=Number(campoProbMax.value),l=Number(campoLiquidez.value);if(!isFinite(d)||d<1||d>30)throw new Error("Informe entre 1 e 30 dias.");if(!isFinite(a)||!isFinite(b)||a<1||b>99||a>b)throw new Error("A probabilidade mínima deve ser menor ou igual à máxima, entre 1% e 99%.");if(!isFinite(l)||l<0)throw new Error("A liquidez mínima deve ser zero ou maior.");return{dias:d,pmin:a/100,pmax:b/100,probMin:a,probMax:b,liq:l};}
-      function endDate(m){var xs=[m.endDateIso,m.endDate,m.umaEndDateIso,m.umaEndDate];for(var i=0;i<xs.length;i++){if(xs[i]){var d=new Date(xs[i]);if(!isNaN(d.getTime()))return d;}}return null;}
-      function hours(m){var d=endDate(m);return d?(d.getTime()-Date.now())/3600000:null;}
-      function time(h){if(!isFinite(h))return"Não informado";if(h<=0)return"Em resolução";var d=Math.floor(h/24),r=Math.floor(h%24);return d>0?d+"d e "+r+"h":r+"h";}
-      function exactDate(m){var d=endDate(m);return d?new Intl.DateTimeFormat("pt-BR",{dateStyle:"medium",timeStyle:"short"}).format(d):"Não informada";}
-      function firstNumber(xs){for(var i=0;i<xs.length;i++){var n=Number(xs[i]);if(isFinite(n)&&n>=0)return n;}return null;}
-      function liquidity(m){var n=firstNumber([m.liquidityClob,m.liquidityNum,m.liquidity,m.liquidityAmm]);return n===null?0:n;}
-      function volume24h(m){return firstNumber([m.volume24hrClob,m.volume24hr,m.volume24Hour,m.volume24h]);}
-      function positions(m){var names=arr(m.outcomes),prices=arr(m.outcomePrices),out=[];for(var i=0;i<names.length;i++){var p=Number(prices[i]);if(isFinite(p))out.push({name:String(names[i]),price:p});}return out;}
-      function eligible(m,f){var ps=positions(m);for(var i=0;i<ps.length;i++)if(ps[i].price>=f.pmin&&ps[i].price<=f.pmax)return ps[i];return null;}
-      function evaluate(ms,f){var ok=[],d={received:ms.length,noDate:0,outside:0,lowLiquidity:0,price:0};for(var i=0;i<ms.length;i++){var m=ms[i],h=hours(m),l=liquidity(m),p=eligible(m,f);if(h===null){d.noDate++;continue;}if(h<=0||h>f.dias*24){d.outside++;continue;}if(l<=f.liq){d.lowLiquidity++;continue;}if(!p){d.price++;continue;}ok.push(m);}ok.sort(function(a,b){return liquidity(b)-liquidity(a);});return{ok:ok,diag:d};}
-      function marketUrl(m){return m.slug?"https://polymarket.com/event/"+encodeURIComponent(m.slug):null;}
-      function card(m,f){var p=eligible(m,f),q=esc(m.question||"Mercado sem título"),name=esc(p?p.name:"Resultado"),pct=p?(p.price*100).toFixed(1)+"%":"—",price=p?money(p.price):"—",v=volume24h(m),link=marketUrl(m),footer=link?'<div class="footer"><a class="link-button" href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">Abrir na Polymarket</a></div>':'<div class="footer"><button type="button" disabled>Link não disponível</button></div>';return '<article class="card"><div class="badge">Lado qualificado: '+name+'</div><h2 class="question">'+q+'</h2><div class="highlights"><div class="highlight positive">'+name+'<br>'+pct+'</div><div class="highlight negative">Preço<br>'+price+'</div></div><div class="details"><div class="row"><span>Tempo para resolução</span><strong>'+esc(time(hours(m)))+'</strong></div><div class="row"><span>Encerra em</span><strong>'+esc(exactDate(m))+'</strong></div><div class="row"><span>Liquidez informada</span><strong>'+money(liquidity(m))+'</strong></div><div class="row"><span>Volume em 24h</span><strong>'+(v===null?"Não informado":money(v))+'</strong></div></div>'+footer+'</article>';}
-      function loading(on){botaoAplicar.disabled=on;botaoRestaurar.disabled=on;botaoAtualizar.disabled=on;botaoAplicar.textContent=on?"Aplicando...":"Aplicar filtros";botaoAtualizar.textContent=on?"Atualizando...":"Atualizar dados";}
-      function error(msg){resultados.innerHTML='<div class="message error"><strong>Não foi possível carregar os mercados.</strong><br>'+esc(msg)+'</div>';status.textContent="Ocorreu um erro na consulta.";}
-      function none(d,f){resultados.innerHTML='<div class="message">Nenhum mercado atende simultaneamente aos filtros neste momento.<br><br><strong>Critérios atuais:</strong><br>Resolução em até '+f.dias+' dia(s)<br>Probabilidade entre '+f.probMin+'% e '+f.probMax+'%<br>Liquidez superior a '+money(f.liq)+'<br><br><strong>Diagnóstico:</strong><br>Recebidos da API: '+d.received+'<br>Sem data válida: '+d.noDate+'<br>Fora da janela: '+d.outside+'<br>Liquidez insuficiente: '+d.lowLiquidity+'<br>Probabilidade fora da faixa: '+d.price+'</div>';}
-      function pageUrl(p){return "https://gamma-api.polymarket.com/markets?active=true&closed=false&limit="+TAMANHO_PAGINA+"&offset="+(p*TAMANHO_PAGINA);}
-      function page(p){return fetch(pageUrl(p)).then(function(r){if(!r.ok)throw new Error("A API respondeu com erro "+r.status+" na página "+(p+1)+".");return r.json();});}
-      function load(){var f;try{f=filters();}catch(e){error(e.message);return;}status.textContent="Consultando até 1.000 mercados da Polymarket...";resultados.innerHTML='<div class="message">Carregando mercados da Polymarket...</div>';loading(true);var jobs=[];for(var p=0;p<TOTAL_DE_PAGINAS;p++)jobs.push(page(p));Promise.all(jobs).then(function(pages){var ms=[];for(var i=0;i<pages.length;i++)if(Array.isArray(pages[i]))ms=ms.concat(pages[i]);if(!ms.length)throw new Error("A API não retornou mercados nas páginas consultadas.");var x=evaluate(ms,f);if(!x.ok.length){none(x.diag,f);status.textContent="Foram analisados "+x.diag.received+" mercados; nenhum passou nos filtros.";return;}resultados.innerHTML=x.ok.map(function(m){return card(m,f);}).join("");status.textContent=x.ok.length+" mercado(s) encontrado(s), após analisar "+ms.length+" mercados.";}).catch(function(e){console.error(e);error(e.message);}).finally(function(){loading(false);});}
-      formulario.addEventListener("submit",function(e){e.preventDefault();load();});
-      botaoAtualizar.addEventListener("click",load);
-      botaoRestaurar.addEventListener("click",function(){campoDias.value=7;campoProbMin.value=90;campoProbMax.value=99;campoLiquidez.value=10000;load();});
-      load();
+
+      var TAMANHO_PAGINA = 100;
+      var TOTAL_DE_PAGINAS = 10;
+      var MAXIMO_CANDIDATOS_PARA_LIVRO = 30;
+
+      var formulario = document.getElementById("formulario");
+      var campoDias = document.getElementById("dias");
+      var campoProbMin = document.getElementById("prob-min");
+      var campoProbMax = document.getElementById("prob-max");
+      var campoLiquidez = document.getElementById("liquidez");
+      var campoSpreadMax = document.getElementById("spread-max");
+
+      var botaoAplicar = document.getElementById("aplicar");
+      var botaoRestaurar = document.getElementById("restaurar");
+      var botaoAtualizar = document.getElementById("atualizar");
+
+      var status = document.getElementById("status");
+      var resultados = document.getElementById("resultados");
+
+      function escaparHtml(valor) {
+        var elemento = document.createElement("div");
+
+        elemento.textContent =
+          valor === null || valor === undefined
+            ? ""
+            : String(valor);
+
+        return elemento.innerHTML;
+      }
+
+      function formatarDolar(valor, casasDecimais) {
+        var numero = Number(valor);
+
+        if (!isFinite(numero)) {
+          return "Não informado";
+        }
+
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          minimumFractionDigits: casasDecimais || 0,
+          maximumFractionDigits: casasDecimais || 0
+        }).format(numero);
+      }
+
+      function formatarPercentual(valor) {
+        var numero = Number(valor);
+
+        if (!isFinite(numero)) {
+          return "Não informado";
+        }
+
+        return numero.toFixed(2) + "%";
+      }
+
+      function transformarEmLista(valor) {
+        if (Array.isArray(valor)) {
+          return valor;
+        }
+
+        if (typeof valor === "string") {
+          try {
+            var convertido = JSON.parse(valor);
+
+            return Array.isArray(convertido)
+              ? convertido
+              : [];
+          } catch (erro) {
+            return [];
+          }
+        }
+
+        return [];
+      }
+
+      function obterFiltros() {
+        var dias = Number(campoDias.value);
+        var probMin = Number(campoProbMin.value);
+        var probMax = Number(campoProbMax.value);
+        var liquidez = Number(campoLiquidez.value);
+        var spreadMaxPontos = Number(campoSpreadMax.value);
+
+        if (!isFinite(dias) || dias < 1 || dias > 30) {
+          throw new Error("Informe entre 1 e 30 dias.");
+        }
+
+        if (
+          !isFinite(probMin) ||
+          !isFinite(probMax) ||
+          probMin < 1 ||
+          probMax > 99 ||
+          probMin > probMax
+        ) {
+          throw new Error(
+            "A probabilidade mínima deve ser menor ou igual à máxima, entre 1% e 99%."
+          );
+        }
+
+        if (!isFinite(liquidez) || liquidez < 0) {
+          throw new Error(
+            "A liquidez mínima deve ser zero ou maior."
+          );
+        }
+
+        if (
+          !isFinite(spreadMaxPontos) ||
+          spreadMaxPontos < 0 ||
+          spreadMaxPontos > 100
+        ) {
+          throw new Error(
+            "Informe um spread máximo entre 0 e 100 pontos."
+          );
+        }
+
+        return {
+          dias: dias,
+          precoMin: probMin / 100,
+          precoMax: probMax / 100,
+          probMin: probMin,
+          probMax: probMax,
+          liquidezMin: liquidez,
+          spreadMaxPontos: spreadMaxPontos,
+          spreadMaximo: spreadMaxPontos / 100
+        };
+      }
+
+      function obterDataFinal(mercado) {
+        var campos = [
+          mercado.endDateIso,
+          mercado.endDate,
+          mercado.umaEndDateIso,
+          mercado.umaEndDate
+        ];
+
+        for (var i = 0; i < campos.length; i++) {
+          if (!campos[i]) {
+            continue;
+          }
+
+          var data = new Date(campos[i]);
+
+          if (!isNaN(data.getTime())) {
+            return data;
+          }
+        }
+
+        return null;
+      }
+
+      function horasRestantes(mercado) {
+        var data = obterDataFinal(mercado);
+
+        if (!data) {
+          return null;
+        }
+
+        return (data.getTime() - Date.now()) / 3600000;
+      }
+
+      function formatarTempo(horas) {
+        if (!isFinite(horas)) {
+          return "Não informado";
+        }
+
+        if (horas <= 0) {
+          return "Em resolução";
+        }
+
+        var dias = Math.floor(horas / 24);
+        var horasDoDia = Math.floor(horas % 24);
+
+        if (dias > 0) {
+          return dias + "d e " + horasDoDia + "h";
+        }
+
+        return horasDoDia + "h";
+      }
+
+      function formatarDataCompleta(mercado) {
+        var data = obterDataFinal(mercado);
+
+        if (!data) {
+          return "Não informada";
+        }
+
+        return new Intl.DateTimeFormat("pt-BR", {
+          dateStyle: "medium",
+          timeStyle: "short"
+        }).format(data);
+      }
+
+      function primeiroNumeroValido(campos) {
+        for (var i = 0; i < campos.length; i++) {
+          var numero = Number(campos[i]);
+
+          if (isFinite(numero) && numero >= 0) {
+            return numero;
+          }
+        }
+
+        return null;
+      }
+
+      function obterLiquidez(mercado) {
+        var valor = primeiroNumeroValido([
+          mercado.liquidityClob,
+          mercado.liquidityNum,
+          mercado.liquidity,
+          mercado.liquidityAmm
+        ]);
+
+        return valor === null ? 0 : valor;
+      }
+
+      function obterVolume24Horas(mercado) {
+        return primeiroNumeroValido([
+          mercado.volume24hrClob,
+          mercado.volume24hr,
+          mercado.volume24Hour,
+          mercado.volume24h
+        ]);
+      }
+
+      function obterResultados(mercado) {
+        var nomes = transformarEmLista(mercado.outcomes);
+        var precos = transformarEmLista(mercado.outcomePrices);
+        var tokens = transformarEmLista(mercado.clobTokenIds);
+        var lista = [];
+
+        for (var i = 0; i < nomes.length; i++) {
+          var preco = Number(precos[i]);
+
+          if (isFinite(preco)) {
+            lista.push({
+              nome: String(nomes[i]),
+              preco: preco,
+              tokenId: tokens[i] ? String(tokens[i]) : null
+            });
+          }
+        }
+
+        return lista;
+      }
+
+      function obterPosicaoElegivel(mercado, filtros) {
+        var posicoes = obterResultados(mercado);
+
+        for (var i = 0; i < posicoes.length; i++) {
+          if (
+            posicoes[i].preco >= filtros.precoMin &&
+            posicoes[i].preco <= filtros.precoMax
+          ) {
+            return posicoes[i];
+          }
+        }
+
+        return null;
+      }
+
+      function filtrarMercadosBasicos(mercados, filtros) {
+        var aprovados = [];
+
+        var diagnostico = {
+          recebidos: mercados.length,
+          semData: 0,
+          foraDoPrazo: 0,
+          poucaLiquidez: 0,
+          precoForaDaFaixa: 0,
+          semTokenCLOB: 0
+        };
+
+        for (var i = 0; i < mercados.length; i++) {
+          var mercado = mercados[i];
+          var horas = horasRestantes(mercado);
+          var liquidez = obterLiquidez(mercado);
+          var posicao = obterPosicaoElegivel(mercado, filtros);
+
+          if (horas === null) {
+            diagnostico.semData++;
+            continue;
+          }
+
+          if (horas <= 0 || horas > filtros.dias * 24) {
+            diagnostico.foraDoPrazo++;
+            continue;
+          }
+
+          if (liquidez <= filtros.liquidezMin) {
+            diagnostico.poucaLiquidez++;
+            continue;
+          }
+
+          if (!posicao) {
+            diagnostico.precoForaDaFaixa++;
+            continue;
+          }
+
+          if (!posicao.tokenId) {
+            diagnostico.semTokenCLOB++;
+            continue;
+          }
+
+          aprovados.push({
+            mercado: mercado,
+            posicao: posicao
+          });
+        }
+
+        aprovados.sort(function (a, b) {
+          return obterLiquidez(b.mercado) - obterLiquidez(a.mercado);
+        });
+
+        return {
+          aprovados: aprovados,
+          diagnostico: diagnostico
+        };
+      }
+
+      function melhorBid(ordens) {
+        var melhor = null;
+
+        for (var i = 0; i < ordens.length; i++) {
+          var preco = Number(ordens[i].price);
+
+          if (isFinite(preco) && (melhor === null || preco > melhor)) {
+            melhor = preco;
+          }
+        }
+
+        return melhor;
+      }
+
+      function melhorAsk(ordens) {
+        var melhor = null;
+
+        for (var i = 0; i < ordens.length; i++) {
+          var preco = Number(ordens[i].price);
+
+          if (isFinite(preco) && (melhor === null || preco < melhor)) {
+            melhor = preco;
+          }
+        }
+
+        return melhor;
+      }
+
+      function criarResumoLivro(livro) {
+        var bid = melhorBid(Array.isArray(livro.bids) ? livro.bids : []);
+        var ask = melhorAsk(Array.isArray(livro.asks) ? livro.asks : []);
+
+        if (bid === null || ask === null) {
+          return {
+            disponivel: false,
+            motivo: "Livro sem bid ou ask disponível."
+          };
+        }
+
+        var spread = ask - bid;
+        var retornoBruto = ((1 / ask) - 1) * 100;
+
+        return {
+          disponivel: true,
+          bid: bid,
+          ask: ask,
+          spread: spread,
+          spreadPontos: spread * 100,
+          retornoBruto: retornoBruto,
+          atualizadoEm: livro.timestamp || null
+        };
+      }
+
+      function buscarLivro(tokenId) {
+        var url =
+          "https://clob.polymarket.com/book?token_id=" +
+          encodeURIComponent(tokenId);
+
+        return fetch(url)
+          .then(function (resposta) {
+            if (!resposta.ok) {
+              throw new Error(
+                "Livro indisponível: erro " +
+                resposta.status +
+                "."
+              );
+            }
+
+            return resposta.json();
+          })
+          .then(criarResumoLivro);
+      }
+
+      function consultarLivros(candidatos) {
+        var promessas = candidatos.map(function (candidato) {
+          return buscarLivro(candidato.posicao.tokenId)
+            .then(function (livro) {
+              candidato.livro = livro;
+              return candidato;
+            })
+            .catch(function (erro) {
+              candidato.livro = {
+                disponivel: false,
+                motivo: erro.message
+              };
+
+              return candidato;
+            });
+        });
+
+        return Promise.all(promessas);
+      }
+
+      function aplicarFiltroSpread(candidatos, filtros) {
+        return candidatos.filter(function (candidato) {
+          return (
+            candidato.livro &&
+            candidato.livro.disponivel &&
+            candidato.livro.spread <= filtros.spreadMaximo
+          );
+        });
+      }
+
+      function criarUrlPolymarket(mercado) {
+        if (!mercado.slug) {
+          return null;
+        }
+
+        return (
+          "https://polymarket.com/event/" +
+          encodeURIComponent(mercado.slug)
+        );
+      }
+
+      function classeDoSpread(livro, filtros) {
+        if (!livro || !livro.disponivel) {
+          return "bad";
+        }
+
+        if (livro.spread <= filtros.spreadMaximo / 2) {
+          return "good";
+        }
+
+        if (livro.spread <= filtros.spreadMaximo) {
+          return "warning";
+        }
+
+        return "bad";
+      }
+
+      function criarCard(candidato, filtros) {
+        var mercado = candidato.mercado;
+        var posicao = candidato.posicao;
+        var livro = candidato.livro;
+
+        var pergunta = escaparHtml(
+          mercado.question || "Mercado sem título"
+        );
+
+        var nome = escaparHtml(posicao.nome);
+        var probabilidadeCatalogo =
+          (posicao.preco * 100).toFixed(1) + "%";
+
+        var volume24h = obterVolume24Horas(mercado);
+
+        var dadosDoLivro;
+
+        if (livro && livro.disponivel) {
+          dadosDoLivro = `
+            <div class="book-section">
+              <h3 class="book-title">Livro CLOB — preço executável</h3>
+
+              <div class="details">
+                <div class="row">
+                  <span>Melhor ask (comprar)</span>
+                  <strong class="good">${formatarDolar(livro.ask, 3)}</strong>
+                </div>
+
+                <div class="row">
+                  <span>Melhor bid (vender)</span>
+                  <strong>${formatarDolar(livro.bid, 3)}</strong>
+                </div>
+
+                <div class="row">
+                  <span>Spread</span>
+                  <strong class="${classeDoSpread(livro, filtros)}">
+                    ${formatarDolar(livro.spread, 3)}
+                    (${livro.spreadPontos.toFixed(1)} pts)
+                  </strong>
+                </div>
+
+                <div class="row">
+                  <span>Retorno bruto no ask</span>
+                  <strong class="good">
+                    ${formatarPercentual(livro.retornoBruto)}
+                  </strong>
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          dadosDoLivro = `
+            <div class="book-section">
+              <h3 class="book-title">Livro CLOB</h3>
+
+              <div class="row">
+                <span>Consulta do livro</span>
+                <strong class="bad">
+                  ${escaparHtml(
+                    livro && livro.motivo
+                      ? livro.motivo
+                      : "Não disponível"
+                  )}
+                </strong>
+              </div>
+            </div>
+          `;
+        }
+
+        var urlPolymarket = criarUrlPolymarket(mercado);
+
+        var botaoAbrir = urlPolymarket
+          ? `
+            <a
+              class="link-button"
+              href="${escaparHtml(urlPolymarket)}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Abrir na Polymarket
+            </a>
+          `
+          : `
+            <button type="button" disabled>
+              Link não disponível
+            </button>
+          `;
+
+        return `
+          <article class="card">
+            <div class="badge">
+              Lado qualificado: ${nome}
+            </div>
+
+            <h2 class="question">${pergunta}</h2>
+
+            <div class="highlights">
+              <div class="highlight positive">
+                Catálogo<br>
+                ${probabilidadeCatalogo}
+              </div>
+
+              <div class="highlight negative">
+                Lado<br>
+                ${nome}
+              </div>
+            </div>
+
+            <div class="details">
+              <div class="row">
+                <span>Tempo para resolução</span>
+                <strong>${escaparHtml(formatarTempo(horasRestantes(mercado)))}</strong>
+              </div>
+
+              <div class="row">
+                <span>Encerra em</span>
+                <strong>${escaparHtml(formatarDataCompleta(mercado))}</strong>
+              </div>
+
+              <div class="row">
+                <span>Liquidez informada</span>
+                <strong>${formatarDolar(obterLiquidez(mercado))}</strong>
+              </div>
+
+              <div class="row">
+                <span>Volume em 24h</span>
+                <strong>
+                  ${volume24h === null
+                    ? "Não informado"
+                    : formatarDolar(volume24h)}
+                </strong>
+              </div>
+            </div>
+
+            ${dadosDoLivro}
+
+            <div class="card-footer">
+              ${botaoAbrir}
+            </div>
+          </article>
+        `;
+      }
+
+      function definirCarregamento(carregando) {
+        botaoAplicar.disabled = carregando;
+        botaoRestaurar.disabled = carregando;
+        botaoAtualizar.disabled = carregando;
+
+        botaoAplicar.textContent = carregando
+          ? "Aplicando..."
+          : "Aplicar filtros";
+
+        botaoAtualizar.textContent = carregando
+          ? "Atualizando..."
+          : "Atualizar dados";
+      }
+
+      function mostrarErro(mensagem) {
+        resultados.innerHTML = `
+          <div class="message error">
+            <strong>Não foi possível carregar os mercados.</strong><br>
+            ${escaparHtml(mensagem)}
+          </div>
+        `;
+
+        status.textContent = "Ocorreu um erro na consulta.";
+      }
+
+      function mostrarNenhumResultadoBasico(diagnostico, filtros) {
+        resultados.innerHTML = `
+          <div class="message">
+            Nenhum mercado chegou à etapa de consulta do livro CLOB.
+            <br><br>
+
+            <strong>Critérios iniciais:</strong><br>
+            Resolução em até ${filtros.dias} dia(s)<br>
+            Probabilidade entre ${filtros.probMin}% e ${filtros.probMax}%<br>
+            Liquidez superior a ${formatarDolar(filtros.liquidezMin)}
+            <br><br>
+
+            <strong>Diagnóstico:</strong><br>
+            Recebidos da API: ${diagnostico.recebidos}<br>
+            Sem data válida: ${diagnostico.semData}<br>
+            Fora da janela: ${diagnostico.foraDoPrazo}<br>
+            Liquidez insuficiente: ${diagnostico.poucaLiquidez}<br>
+            Probabilidade fora da faixa: ${diagnostico.precoForaDaFaixa}<br>
+            Sem token CLOB: ${diagnostico.semTokenCLOB}
+          </div>
+        `;
+      }
+
+      function mostrarNenhumResultadoLivro(
+        candidatosConsultados,
+        filtros
+      ) {
+        var semLivro = candidatosConsultados.filter(function (candidato) {
+          return !candidato.livro || !candidato.livro.disponivel;
+        }).length;
+
+        var spreadAlto = candidatosConsultados.filter(function (candidato) {
+          return (
+            candidato.livro &&
+            candidato.livro.disponivel &&
+            candidato.livro.spread > filtros.spreadMaximo
+          );
+        }).length;
+
+        resultados.innerHTML = `
+          <div class="message">
+            Nenhum candidato passou no filtro de spread do livro CLOB.
+            <br><br>
+
+            <strong>Spread máximo atual:</strong>
+            ${filtros.spreadMaxPontos.toFixed(1)} pontos
+            (${formatarDolar(filtros.spreadMaximo, 3)}).
+            <br><br>
+
+            Candidatos consultados no livro: ${candidatosConsultados.length}<br>
+            Livros indisponíveis ou incompletos: ${semLivro}<br>
+            Spread acima do limite: ${spreadAlto}
+            <br><br>
+
+            Você pode aumentar temporariamente o spread máximo para observar
+            os candidatos, mas um spread maior pode dificultar a execução.
+          </div>
+        `;
+      }
+
+      function criarUrlDaPagina(numeroDaPagina) {
+        var offset = numeroDaPagina * TAMANHO_PAGINA;
+
+        return (
+          "https://gamma-api.polymarket.com/markets" +
+          "?active=true" +
+          "&closed=false" +
+          "&limit=" + TAMANHO_PAGINA +
+          "&offset=" + offset
+        );
+      }
+
+      function buscarPagina(numeroDaPagina) {
+        return fetch(criarUrlDaPagina(numeroDaPagina))
+          .then(function (resposta) {
+            if (!resposta.ok) {
+              throw new Error(
+                "A API respondeu com erro " +
+                resposta.status +
+                " na página " +
+                (numeroDaPagina + 1) +
+                "."
+              );
+            }
+
+            return resposta.json();
+          });
+      }
+
+      function carregarMercados() {
+        var filtros;
+
+        try {
+          filtros = obterFiltros();
+        } catch (erro) {
+          mostrarErro(erro.message);
+          return;
+        }
+
+        status.textContent =
+          "Consultando até 1.000 mercados da Polymarket...";
+
+        resultados.innerHTML = `
+          <div class="message">
+            Carregando mercados da Polymarket...
+          </div>
+        `;
+
+        definirCarregamento(true);
+
+        var promessasPaginas = [];
+
+        for (
+          var pagina = 0;
+          pagina < TOTAL_DE_PAGINAS;
+          pagina++
+        ) {
+          promessasPaginas.push(buscarPagina(pagina));
+        }
+
+        Promise.all(promessasPaginas)
+          .then(function (paginas) {
+            var todosOsMercados = [];
+
+            for (var i = 0; i < paginas.length; i++) {
+              if (Array.isArray(paginas[i])) {
+                todosOsMercados =
+                  todosOsMercados.concat(paginas[i]);
+              }
+            }
+
+            if (todosOsMercados.length === 0) {
+              throw new Error(
+                "A API não retornou mercados nas páginas consultadas."
+              );
+            }
+
+            var resultadoBasico = filtrarMercadosBasicos(
+              todosOsMercados,
+              filtros
+            );
+
+            if (resultadoBasico.aprovados.length === 0) {
+              mostrarNenhumResultadoBasico(
+                resultadoBasico.diagnostico,
+                filtros
+              );
+
+              status.textContent =
+                "Foram analisados " +
+                resultadoBasico.diagnostico.recebidos +
+                " mercados; nenhum passou nos filtros iniciais.";
+
+              return null;
+            }
+
+            var candidatosParaLivro =
+              resultadoBasico.aprovados.slice(
+                0,
+                MAXIMO_CANDIDATOS_PARA_LIVRO
+              );
+
+            status.textContent =
+              "Consultando o livro CLOB de " +
+              candidatosParaLivro.length +
+              " candidato(s)...";
+
+            return consultarLivros(candidatosParaLivro)
+              .then(function (candidatosConsultados) {
+                return {
+                  todosOsMercados: todosOsMercados,
+                  resultadoBasico: resultadoBasico,
+                  candidatosConsultados: candidatosConsultados
+                };
+              });
+          })
+          .then(function (dados) {
+            if (!dados) {
+              return;
+            }
+
+            var aprovadosNoLivro = aplicarFiltroSpread(
+              dados.candidatosConsultados,
+              filtros
+            );
+
+            if (aprovadosNoLivro.length === 0) {
+              mostrarNenhumResultadoLivro(
+                dados.candidatosConsultados,
+                filtros
+              );
+
+              status.textContent =
+                "Nenhum candidato passou no filtro de spread.";
+
+              return;
+            }
+
+            aprovadosNoLivro.sort(function (a, b) {
+              return a.livro.spread - b.livro.spread;
+            });
+
+            resultados.innerHTML = aprovadosNoLivro
+              .map(function (candidato) {
+                return criarCard(candidato, filtros);
+              })
+              .join("");
+
+            status.textContent =
+              aprovadosNoLivro.length +
+              " mercado(s) com spread compatível, após analisar " +
+              dados.todosOsMercados.length +
+              " mercados e consultar " +
+              dados.candidatosConsultados.length +
+              " livro(s).";
+          })
+          .catch(function (erro) {
+            console.error(erro);
+            mostrarErro(erro.message);
+          })
+          .finally(function () {
+            definirCarregamento(false);
+          });
+      }
+
+      formulario.addEventListener("submit", function (evento) {
+        evento.preventDefault();
+        carregarMercados();
+      });
+
+      botaoAtualizar.addEventListener("click", function () {
+        carregarMercados();
+      });
+
+      botaoRestaurar.addEventListener("click", function () {
+        campoDias.value = 7;
+        campoProbMin.value = 90;
+        campoProbMax.value = 99;
+        campoLiquidez.value = 10000;
+        campoSpreadMax.value = 5;
+
+        carregarMercados();
+      });
+
+      carregarMercados();
     })();
   </script>
 </body>
